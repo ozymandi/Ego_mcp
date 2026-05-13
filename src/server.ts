@@ -1,10 +1,18 @@
 #!/usr/bin/env node
-import "dotenv/config";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import dotenv from "dotenv";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
 import { FigmaClient, FigmaError, parseFileKey } from "./figma.js";
 import { PluginBridge } from "./bridge.js";
+
+// Resolve .env relative to this script, not process.cwd(). LM Studio (and
+// other MCP clients) launch the server from arbitrary working directories.
+const here = path.dirname(fileURLToPath(import.meta.url));
+dotenv.config({ path: path.resolve(here, "../.env") });
+dotenv.config({ path: path.resolve(here, "../../.env") }); // when running via tsx from src/
 
 const token = process.env.FIGMA_TOKEN;
 if (!token) {
@@ -19,8 +27,10 @@ const figma = new FigmaClient({
   defaultFileKey: process.env.FIGMA_DEFAULT_FILE_KEY || undefined,
 });
 
-const bridgePort = Number(process.env.FIGMA_BRIDGE_PORT ?? 7575);
-const bridge = new PluginBridge({ port: bridgePort });
+const bridgeUrl =
+  process.env.FIGMA_BRIDGE_URL ??
+  `ws://localhost:${process.env.FIGMA_BRIDGE_PORT ?? 7575}`;
+const bridge = new PluginBridge({ url: bridgeUrl });
 
 const server = new McpServer({
   name: "gemma-figma-mcp",
@@ -252,11 +262,11 @@ server.registerTool(
   },
   async () =>
     run(async () => ({
-      connected: bridge.isConnected(),
-      port: bridgePort,
+      daemon_url: bridgeUrl,
+      mcp_to_daemon: bridge.isConnected() ? "connected" : "disconnected",
       hint: bridge.isConnected()
-        ? "Plugin is connected — use_figma / get_selection / get_screenshot are usable."
-        : "Plugin not connected. In Figma desktop: Plugins → Development → Import plugin from manifest, then run 'Gemma 4 MCP Bridge'.",
+        ? "Bridge daemon is reachable. Call use_figma / get_selection / get_screenshot to exercise the plugin."
+        : `Bridge daemon not reachable at ${bridgeUrl}. Start it: 'npm run bridge' in the project directory.`,
     })),
 );
 

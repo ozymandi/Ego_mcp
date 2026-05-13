@@ -12,6 +12,8 @@
     "build:server": "tsc",
     "build:plugin": "cd plugin && npm run build",
     "start": "node dist/server.js",
+    "bridge": "node dist/daemon.js",
+    "bridge:dev": "tsx src/daemon.ts",
     "dev": "tsx src/server.ts",
     "typecheck": "tsc --noEmit && cd plugin && npm run typecheck"
   },

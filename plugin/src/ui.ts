@@ -55,6 +55,13 @@ function connect(url: string) {
   ws.addEventListener("open", () => {
     setStatus("ok", `connected to ${url}`);
     log("connected");
+    // Declare role to the bridge daemon. Without this, the daemon will not
+    // route messages to/from this socket.
+    try {
+      ws!.send(JSON.stringify({ role: "plugin" }));
+    } catch (err) {
+      log(`role send failed: ${(err as Error).message}`);
+    }
     toSandbox({ kind: "bridge-status", connected: true });
   });
 

@@ -1,6 +1,6 @@
-import { WebSocketServer, WebSocket } from "ws";
+import { WebSocket } from "ws";
 import { randomUUID } from "node:crypto";
-import type { Request, RequestType, Response } from "./protocol.js";
+import type { RequestType } from "./protocol.js";
 
 interface Pending {
   resolve: (value: unknown) => void;
@@ -9,71 +9,96 @@ interface Pending {
 }
 
 export interface BridgeOptions {
-  port: number;
-  host?: string;
+  url: string;
   defaultTimeoutMs?: number;
+  reconnectDelayMs?: number;
 }
 
+// WebSocket client that talks to the bridge daemon. The daemon owns the
+// listening socket and the plugin handle; this class is just a transport
+// for the MCP server.
 export class PluginBridge {
-  private readonly wss: WebSocketServer;
-  private socket: WebSocket | null = null;
+  private ws: WebSocket | null = null;
   private readonly pending = new Map<string, Pending>();
   private readonly defaultTimeoutMs: number;
+  private readonly reconnectDelayMs: number;
+  private readonly url: string;
+  private reconnectTimer: NodeJS.Timeout | null = null;
+  private closed = false;
 
   constructor(opts: BridgeOptions) {
+    this.url = opts.url;
     this.defaultTimeoutMs = opts.defaultTimeoutMs ?? 30_000;
-    // No `host` -> listens on :: (dual-stack), so both 127.0.0.1 and ::1
-    // are accepted. Figma's plugin runtime resolves localhost to ::1 on
-    // Windows, which is why a v4-only bind silently fails.
-    this.wss = new WebSocketServer({
-      port: opts.port,
-      ...(opts.host ? { host: opts.host } : {}),
-    });
+    this.reconnectDelayMs = opts.reconnectDelayMs ?? 2_000;
+    this.connect();
+  }
 
-    this.wss.on("connection", (ws) => {
-      // Only one plugin instance is supported. Newest connection wins.
-      if (this.socket && this.socket.readyState === WebSocket.OPEN) {
-        try {
-          this.socket.close(1000, "replaced by new connection");
-        } catch {
-          // ignore
-        }
+  private connect(): void {
+    if (this.closed) return;
+    if (this.ws) {
+      try {
+        this.ws.removeAllListeners();
+        this.ws.close();
+      } catch {
+        // ignore
       }
-      this.socket = ws;
-      console.error("[bridge] plugin connected");
+    }
 
-      ws.on("message", (data) => this.handleMessage(data.toString()));
-      ws.on("close", () => {
-        if (this.socket === ws) {
-          this.socket = null;
-        }
-        console.error("[bridge] plugin disconnected");
-        // Fail every pending request — they will not be answered.
-        for (const [id, p] of this.pending) {
-          clearTimeout(p.timer);
-          p.reject(new Error("Plugin disconnected before response"));
-          this.pending.delete(id);
-        }
-      });
-      ws.on("error", (err) => {
-        console.error("[bridge] socket error:", err);
-      });
+    const ws = new WebSocket(this.url);
+    this.ws = ws;
+
+    ws.on("open", () => {
+      console.error(`[bridge-client] connected to ${this.url}`);
+      ws.send(JSON.stringify({ role: "mcp" }));
     });
 
-    this.wss.on("listening", () => {
-      const addr = this.wss.address();
-      const shown =
-        addr === null
-          ? "(unknown address)"
-          : typeof addr === "string"
-            ? addr
-            : `${addr.address}:${addr.port}`;
-      console.error(`[bridge] listening on ws://${shown}`);
+    ws.on("message", (raw) => {
+      let msg: { id?: string; ok?: boolean; result?: unknown; error?: string };
+      try {
+        msg = JSON.parse(raw.toString());
+      } catch {
+        return;
+      }
+      if (!msg.id) return;
+      const p = this.pending.get(msg.id);
+      if (!p) return;
+      clearTimeout(p.timer);
+      this.pending.delete(msg.id);
+      if (msg.ok) p.resolve(msg.result);
+      else p.reject(new Error(msg.error ?? "Plugin returned an error"));
+    });
+
+    ws.on("close", () => {
+      if (this.ws === ws) this.ws = null;
+      // Don't immediately fail pending; the reconnect may resolve them via
+      // a retry. But the daemon won't replay, so they will time out — that's
+      // fine, the MCP client will see a timeout error.
+      if (!this.closed) {
+        console.error(
+          `[bridge-client] disconnected from daemon; retrying in ${this.reconnectDelayMs}ms`,
+        );
+        this.scheduleReconnect();
+      }
+    });
+
+    ws.on("error", (err) => {
+      // Suppress noisy reconnect spam; the close handler will retry.
+      if (this.pending.size > 0) {
+        console.error("[bridge-client] socket error:", err.message);
+      }
     });
   }
 
+  private scheduleReconnect(): void {
+    if (this.reconnectTimer || this.closed) return;
+    this.reconnectTimer = setTimeout(() => {
+      this.reconnectTimer = null;
+      this.connect();
+    }, this.reconnectDelayMs);
+  }
+
   isConnected(): boolean {
-    return this.socket !== null && this.socket.readyState === WebSocket.OPEN;
+    return this.ws !== null && this.ws.readyState === WebSocket.OPEN;
   }
 
   async send<T = unknown>(
@@ -83,11 +108,11 @@ export class PluginBridge {
   ): Promise<T> {
     if (!this.isConnected()) {
       throw new Error(
-        "Figma plugin is not connected. Install and run the 'Gemma 4 MCP Bridge' plugin in Figma.",
+        `Bridge daemon not reachable at ${this.url}. Start it with 'npm run bridge' in this project directory.`,
       );
     }
     const id = randomUUID();
-    const req: Request = { id, type, payload };
+    const req = { id, type, payload };
     const json = JSON.stringify(req);
 
     return new Promise<T>((resolve, reject) => {
@@ -102,7 +127,7 @@ export class PluginBridge {
         timer,
       });
 
-      this.socket!.send(json, (err) => {
+      this.ws!.send(json, (err) => {
         if (err) {
           clearTimeout(timer);
           this.pending.delete(id);
@@ -112,46 +137,25 @@ export class PluginBridge {
     });
   }
 
-  private handleMessage(raw: string): void {
-    let msg: Response;
-    try {
-      msg = JSON.parse(raw) as Response;
-    } catch (err) {
-      console.error("[bridge] malformed message from plugin:", raw);
-      return;
-    }
-    if (!msg || typeof msg.id !== "string") {
-      console.error("[bridge] missing id in message:", raw);
-      return;
-    }
-    const p = this.pending.get(msg.id);
-    if (!p) {
-      // Plugin pushed something unsolicited — ignore silently for now.
-      return;
-    }
-    clearTimeout(p.timer);
-    this.pending.delete(msg.id);
-    if (msg.ok) {
-      p.resolve(msg.result);
-    } else {
-      p.reject(new Error(msg.error ?? "Plugin returned an error"));
-    }
-  }
-
   close(): void {
+    this.closed = true;
+    if (this.reconnectTimer) {
+      clearTimeout(this.reconnectTimer);
+      this.reconnectTimer = null;
+    }
     for (const [, p] of this.pending) {
       clearTimeout(p.timer);
-      p.reject(new Error("Bridge shutting down"));
+      p.reject(new Error("Bridge client shutting down"));
     }
     this.pending.clear();
-    if (this.socket) {
+    if (this.ws) {
       try {
-        this.socket.close(1000, "server shutting down");
+        this.ws.removeAllListeners();
+        this.ws.close();
       } catch {
         // ignore
       }
-      this.socket = null;
+      this.ws = null;
     }
-    this.wss.close();
   }
 }

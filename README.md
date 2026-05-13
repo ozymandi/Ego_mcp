@@ -71,7 +71,28 @@ FIGMA_BRIDGE_PORT=7575           # optional, WebSocket port for the plugin bridg
 
 > `.env` is in `.gitignore`.
 
-### 3. Wire up LM Studio
+### 3. Start the bridge daemon
+
+The Figma plugin and the MCP server both connect to a long-lived bridge
+daemon. The daemon owns the WebSocket port and routes wire messages
+between them. **Without the daemon running, the canvas tools won't work.**
+
+In a terminal that stays open:
+
+```powershell
+npm run bridge
+```
+
+You should see:
+
+```
+[daemon] listening on ws://:::7575
+```
+
+Leave it running. The MCP server (spawned by LM Studio) and the Figma
+plugin will both connect to it.
+
+### 4. Wire up LM Studio
 
 LM Studio supports MCP servers via `mcp.json` (Program → **Integrations** → **Edit mcp.json**).
 
@@ -93,15 +114,15 @@ The server reads `FIGMA_TOKEN` from the `.env` file next to itself, so you don't
 
 Reload LM Studio. Pick a model that supports tool calling (Gemma 4 instruct variants do), open chat, and you should see the `gemma-figma` tools available.
 
-### 4. Install the Figma plugin
+### 5. Install the Figma plugin
 
-The plugin bridges live canvas access to the MCP server over a local WebSocket.
+The plugin connects to the bridge daemon over WebSocket.
 
-1. Open **Figma desktop** (the plugin bridge requires desktop, not the browser).
+1. Open **Figma desktop** (the plugin runtime requires desktop, not the browser).
 2. Top menu → **Plugins → Development → Import plugin from manifest…**
 3. Select `plugin/manifest.json` in this repo.
 4. Run the plugin: **Plugins → Development → Gemma 4 MCP Bridge**.
-5. The plugin window shows a green dot when it's connected to the MCP server on `ws://localhost:7575`.
+5. The plugin window shows a green dot when it's connected to the daemon at `ws://localhost:7575`.
 
 Once connected, the `use_figma`, `get_selection`, `get_current_page`, and `get_screenshot` tools start working.
 
@@ -118,17 +139,46 @@ figma.currentPage.appendChild(rect);
 return { created: rect.id };
 ```
 
-### 5. Sanity check (without LM Studio)
+### 6. Sanity check (without LM Studio)
+
+In one terminal:
+
+```powershell
+npm run bridge
+```
+
+In another:
 
 ```powershell
 npm run dev
 ```
 
-The server starts on stdio, opens the WebSocket bridge on `ws://localhost:7575`, and prints `[gemma-figma-mcp] ready on stdio` to stderr. Press Ctrl+C to stop. (Stdio servers are usually exercised by an MCP client, not directly.)
+The MCP server prints `[bridge-client] connected to ws://localhost:7575` and `[gemma-figma-mcp] ready on stdio`. Press Ctrl+C in either terminal to stop. (Stdio servers are usually exercised by an MCP client, not directly.)
+
+## Architecture
+
+```
+              ws://localhost:7575
+                       │
+                ┌──────┴───────┐
+                │ bridge daemon│  ← `npm run bridge`
+                └──┬─────────┬─┘
+       role=plugin │         │ role=mcp
+                   ▼         ▼
+          ┌────────────┐  ┌──────────────┐
+          │ Figma      │  │ MCP server   │  ← spawned by LM Studio
+          │ plugin     │  │ (stdio)      │
+          └────────────┘  └──────────────┘
+```
+
+The daemon is the long-lived owner of the WebSocket port. Decoupling it
+from the MCP server's lifecycle is important because LM Studio may stop
+and restart MCP servers freely — without a separate daemon, the plugin
+would see constant reconnect cycles.
 
 ## Notes
 
 - Figma REST responses can be large. Prefer `get_metadata` first, then `get_node` for specific subtrees, rather than `get_file` on every call.
 - `get_image` (REST) returns S3 URLs that expire ~30 days after generation. `get_screenshot` (plugin) returns inline base64.
-- The plugin bridge expects a single Figma instance. If you open the plugin in two Figma windows, only the latest connection is kept.
+- The daemon allows only one connected plugin. If you open the plugin in two Figma windows, only the newest connection is kept.
 - Variables and Libraries (phase 2) require Enterprise-tier plan for full coverage.

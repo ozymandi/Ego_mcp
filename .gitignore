@@ -12,3 +12,4 @@ ego.env
 .idea/
 .claude/
 screenshots/
+.cache/

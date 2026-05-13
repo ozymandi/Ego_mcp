@@ -43,6 +43,17 @@ MCP server that connects **Gemma 4** running in **LM Studio** to **Figma**.
 | `get_team_component_sets` | Paginated team library component sets |
 | `get_team_styles` | Paginated team library styles |
 
+### Design system search, diagrams, FigJam (phase 6)
+| Tool | Purpose |
+|------|---------|
+| `index_design_system` | Fetch a team's published library and write `.cache/design-system-<team>.json` |
+| `search_design_system` | Fuzzy search the local cache by name/description |
+| `clear_design_system_cache` | Wipe one team's cache (or all) |
+| `create_flowchart` | Draw a flowchart from `nodes[]` + `edges[]` (layered layout) |
+| `mermaid_to_canvas` | Parse a small Mermaid `flowchart TD/LR` and render it |
+| `create_sticky` | FigJam sticky note (10 stock colors) |
+| `create_connector` | Connector between two nodes (FigJam + Figma Design) |
+
 ### Code Connect (phase 5)
 | Tool | Purpose |
 |------|---------|

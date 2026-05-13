@@ -6,6 +6,9 @@ const TOPICS = [
   "canvas",
   "rest",
   "code-connect",
+  "design-system",
+  "diagrams",
+  "figjam",
   "examples",
   "troubleshoot",
 ] as const;
@@ -19,6 +22,9 @@ Call \`help\` with one of these topics:
 - \`help("canvas")\` — create/edit nodes on the canvas
 - \`help("rest")\` — read files via the Figma REST API
 - \`help("code-connect")\` — map Figma components to your code
+- \`help("design-system")\` — index and search a team's published library
+- \`help("diagrams")\` — flowcharts and Mermaid rendering
+- \`help("figjam")\` — sticky notes and connectors
 - \`help("examples")\` — copy-paste prompts you can try
 - \`help("troubleshoot")\` — fix common problems
 
@@ -327,11 +333,116 @@ figma.connect(Button, "https://figma.com/design/.../?node-id=12-345", {
 \`\`\`
 `;
 
+const DESIGN_SYSTEM = `# Design system search
+
+For exploring a team's published Figma library — components, variant
+sets, and styles — by name without typing exact keys.
+
+## Flow
+
+1. \`index_design_system(team_id)\` — paginates through every team library
+   endpoint and writes \`.cache/design-system-<team_id>.json\`. Re-run any
+   time to refresh.
+2. \`search_design_system(query, type?, limit?)\` — fuzzy text search by
+   name + description. Scoring prioritises exact name matches, then
+   prefixes, then substring matches.
+3. \`clear_design_system_cache(team_id?)\` — wipe one team's cache or all.
+
+## Tips
+
+- Find \`team_id\` in the team URL: \`https://www.figma.com/files/team/<TEAM_ID>/...\`.
+- Use \`type='component' | 'component_set' | 'style'\` to narrow results.
+- Each result row has a \`key\` you can pass to \`get_component_by_key\`,
+  \`get_component_set_by_key\`, or \`get_style_by_key\` for full details.
+- Caches are small JSON files; safe to inspect by hand.
+`;
+
+const DIAGRAMS = `# Diagrams
+
+Two tools draw flowcharts directly onto the Figma canvas via the plugin
+bridge.
+
+## \`create_flowchart(nodes, edges, direction?, ...)\`
+
+Structured input → layered layout → real Figma nodes with connectors.
+
+- \`nodes: [{ id, label, shape?: 'box'|'pill'|'circle'|'diamond' }]\`
+- \`edges: [{ from, to, label? }]\`
+- \`direction\`: \`TD\` (default), \`TB\`, \`LR\`, \`RL\`, \`BT\`
+- \`origin: { x, y }\` — diagram center.
+- Sizing: \`node_width\`, \`node_height\`, \`level_spacing\`, \`node_spacing\`.
+- \`connector_style: 'STRAIGHT' | 'ELBOWED'\` (default ELBOWED).
+
+## \`mermaid_to_canvas(mermaid, ...)\`
+
+Parses a small subset of Mermaid \`flowchart\` syntax and forwards to
+\`create_flowchart\`. Supported:
+
+- Header: \`flowchart TD|TB|LR|RL|BT\` or \`graph TD|...\`
+- Node shapes: \`A[label]\` (box), \`A(label)\` (pill), \`A((label))\` (circle), \`A{label}\` (diamond)
+- Edges: \`A --> B\`, \`A -- text --> B\`, \`A -.-> B\`, \`A ==> B\`
+
+Not supported: subgraphs, \`class\` / \`classDef\`, \`linkStyle\`, click
+handlers. The tool throws a clear error if it can't parse the header.
+
+## Example
+
+\`\`\`
+mermaid_to_canvas:
+flowchart TD
+  A[Request received]
+  B{Auth ok?}
+  C[Process]
+  D((Done))
+  E[Reject]
+  A --> B
+  B -- yes --> C
+  B -- no --> E
+  C --> D
+\`\`\`
+`;
+
+const FIGJAM = `# FigJam helpers
+
+These work alongside the canvas helpers — but two of them are
+FigJam-specific.
+
+## \`create_sticky(x, y, text, color?, parent_id?)\`
+
+FigJam sticky note. Errors clearly if you call it on a Figma Design file.
+
+Colors (string names): \`yellow\` (default), \`green\`, \`blue\`, \`pink\`,
+\`red\`, \`orange\`, \`gray\`, \`lightGray\`, \`violet\`, \`teal\`.
+
+## \`create_connector(from_id, to_id, label?, style?, stroke_color?)\`
+
+Connector arrow between two existing nodes. Works in both FigJam and
+Figma Design (the plugin uses \`documentAccess: dynamic-page\`, which
+unlocks connectors in design files too).
+
+- \`style\`: \`ELBOWED\` (default) or \`STRAIGHT\`.
+- \`stroke_color\`: hex like \`#444\`.
+- \`label\`: optional caption rendered along the line.
+
+## Pattern: build a quick board
+
+\`\`\`
+1. create_sticky(0,0,"Goal: ship v1")
+2. create_sticky(280,0,"Open Qs")
+3. find_nodes(name_pattern="Goal")  // returns the sticky id
+4. find_nodes(name_pattern="Open")
+5. create_connector(<goal_id>, <qs_id>, label="depends on")
+\`\`\`
+`;
+
 const BODIES: Record<Topic, string> = {
   overview: OVERVIEW,
   canvas: CANVAS,
   rest: REST,
   "code-connect": CODE_CONNECT,
+  "design-system": DESIGN_SYSTEM,
+  diagrams: DIAGRAMS,
+  figjam: FIGJAM,
   examples: EXAMPLES,
   troubleshoot: TROUBLESHOOT,
 };

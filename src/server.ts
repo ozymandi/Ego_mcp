@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { mkdirSync, writeFileSync } from "node:fs";
 import dotenv from "dotenv";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
@@ -318,12 +319,25 @@ server.registerTool(
   async () => run(() => bridge.send("get_current_page")),
 );
 
+const screenshotDir = path.resolve(here, "../screenshots");
+
+interface PluginScreenshot {
+  id: string;
+  name: string;
+  format: "PNG" | "JPG" | "SVG";
+  base64: string;
+}
+
+function safeNodeId(id: string): string {
+  return id.replace(/[^a-zA-Z0-9_-]+/g, "_");
+}
+
 server.registerTool(
   "get_screenshot",
   {
     title: "Screenshot Figma nodes",
     description:
-      "Exports nodes as base64-encoded PNG/JPG/SVG via the plugin. With no node_ids, exports the current selection.",
+      "Exports nodes via the plugin. Returns the saved file path(s) for each node and embeds the image inline (clients that render image content will display it). With no node_ids, exports the current selection.",
     inputSchema: {
       node_ids: z
         .array(z.string().min(1))
@@ -333,10 +347,59 @@ server.registerTool(
       scale: z.number().min(0.1).max(4).optional().default(2),
     },
   },
-  async ({ node_ids, format, scale }) =>
-    run(() =>
-      bridge.send("get_screenshot", { node_ids, format, scale }, 60_000),
-    ),
+  async ({ node_ids, format, scale }) => {
+    try {
+      const shots = (await bridge.send(
+        "get_screenshot",
+        { node_ids, format, scale },
+        60_000,
+      )) as PluginScreenshot[];
+
+      mkdirSync(screenshotDir, { recursive: true });
+      const stamp = new Date()
+        .toISOString()
+        .replace(/[:.]/g, "-")
+        .replace("T", "_")
+        .slice(0, 19);
+
+      const saved: { path: string; bytes: number; shot: PluginScreenshot }[] = [];
+      for (const shot of shots) {
+        const ext = shot.format.toLowerCase();
+        const filename = `${stamp}_${safeNodeId(shot.id)}.${ext}`;
+        const filePath = path.join(screenshotDir, filename);
+        const buf = Buffer.from(shot.base64, "base64");
+        writeFileSync(filePath, buf);
+        saved.push({ path: filePath, bytes: buf.length, shot });
+      }
+
+      const lines = saved.map(
+        (s) =>
+          `• ${s.shot.name} (${s.shot.id}) → ${s.path} (${s.bytes.toLocaleString()} bytes, ${s.shot.format})`,
+      );
+      const summary = `Saved ${saved.length} screenshot${saved.length === 1 ? "" : "s"}:\n${lines.join("\n")}`;
+
+      const content: ({ type: "text"; text: string } | {
+        type: "image";
+        data: string;
+        mimeType: string;
+      })[] = [{ type: "text", text: summary }];
+
+      for (const s of saved) {
+        // SVG is text, not a renderable image content block.
+        if (s.shot.format === "SVG") continue;
+        const mime = s.shot.format === "PNG" ? "image/png" : "image/jpeg";
+        content.push({ type: "image", data: s.shot.base64, mimeType: mime });
+      }
+
+      return { content };
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      return {
+        isError: true,
+        content: [{ type: "text" as const, text: `Error: ${msg}` }],
+      };
+    }
+  },
 );
 
 async function main() {

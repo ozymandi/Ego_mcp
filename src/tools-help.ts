@@ -267,4 +267,37 @@ export function registerHelpTools(server: McpServer): void {
       return { content: [{ type: "text", text }] };
     },
   );
+
+  // MCP prompt — surfaces in clients that show server-side prompts in a
+  // menu (e.g. Claude Code, MCP Inspector). Picking it injects a short
+  // user message that triggers the `help` tool with the chosen topic.
+  server.registerPrompt(
+    "figma_help",
+    {
+      title: "Figma MCP help",
+      description:
+        "Quick reference for the Gemma 4 ↔ Figma MCP. Pick a topic to load the matching guide.",
+      argsSchema: {
+        topic: z
+          .enum(TOPICS)
+          .optional()
+          .describe(
+            "Which guide to load. Omit for the index of available topics.",
+          ),
+      },
+    },
+    ({ topic }) => {
+      const phrase = topic
+        ? `Please call the \`help\` tool with topic="${topic}" and walk me through what it returns.`
+        : "Please call the `help` tool with no arguments and show me the available topics for this Figma MCP server.";
+      return {
+        messages: [
+          {
+            role: "user",
+            content: { type: "text", text: phrase },
+          },
+        ],
+      };
+    },
+  );
 }

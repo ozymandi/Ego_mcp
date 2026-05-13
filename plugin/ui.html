@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Gemma 4 MCP Bridge</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        font-family:
+          ui-sans-serif,
+          -apple-system,
+          system-ui,
+          sans-serif;
+      }
+      body {
+        margin: 0;
+        padding: 16px;
+        background: var(--figma-color-bg, #fff);
+        color: var(--figma-color-text, #000);
+      }
+      h1 {
+        font-size: 13px;
+        font-weight: 600;
+        margin: 0 0 12px;
+      }
+      .row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 8px;
+      }
+      .dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: #c00;
+        flex-shrink: 0;
+      }
+      .dot.ok {
+        background: #18a558;
+      }
+      .dot.warn {
+        background: #d6a700;
+      }
+      label {
+        font-size: 11px;
+        opacity: 0.75;
+        display: block;
+        margin-bottom: 4px;
+      }
+      input,
+      button {
+        font: inherit;
+      }
+      input {
+        width: 100%;
+        box-sizing: border-box;
+        padding: 6px 8px;
+        border: 1px solid var(--figma-color-border, #ccc);
+        background: var(--figma-color-bg-secondary, transparent);
+        color: inherit;
+        border-radius: 4px;
+      }
+      button {
+        margin-top: 8px;
+        padding: 6px 12px;
+        border: none;
+        background: var(--figma-color-bg-brand, #0d99ff);
+        color: var(--figma-color-text-onbrand, #fff);
+        border-radius: 4px;
+        cursor: pointer;
+      }
+      button:disabled {
+        opacity: 0.6;
+        cursor: default;
+      }
+      pre {
+        font-size: 11px;
+        max-height: 120px;
+        overflow: auto;
+        background: var(--figma-color-bg-secondary, #f4f4f4);
+        padding: 8px;
+        border-radius: 4px;
+        margin: 8px 0 0;
+        white-space: pre-wrap;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Gemma 4 MCP Bridge</h1>
+    <div class="row">
+      <div id="status-dot" class="dot"></div>
+      <span id="status-text">disconnected</span>
+    </div>
+    <label for="url">WebSocket URL</label>
+    <input id="url" value="ws://127.0.0.1:7575" />
+    <button id="reconnect">Reconnect</button>
+    <pre id="log"></pre>
+    <script src="dist/ui.js"></script>
+  </body>
+</html>

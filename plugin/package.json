@@ -1,0 +1,16 @@
+{
+  "name": "gemma-figma-mcp-plugin",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Figma plugin bridging the Figma canvas to the Gemma 4 MCP server over WebSocket.",
+  "scripts": {
+    "build": "esbuild src/code.ts --bundle --outfile=dist/code.js --target=es2017 --format=iife && esbuild src/ui.ts --bundle --outfile=dist/ui.js --target=es2017 --format=iife",
+    "typecheck": "tsc --noEmit",
+    "watch": "esbuild src/code.ts --bundle --outfile=dist/code.js --target=es2017 --format=iife --watch"
+  },
+  "devDependencies": {
+    "@figma/plugin-typings": "^1.108.0",
+    "esbuild": "^0.24.0",
+    "typescript": "^5.7.2"
+  }
+}

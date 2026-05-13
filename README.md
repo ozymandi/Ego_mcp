@@ -2,11 +2,13 @@
 
 MCP server that connects **Gemma 4** running in **LM Studio** to **Figma**.
 
-Phase 1 (current): read-only REST tools + posting comments.
-Phases 2–6 (planned): Figma Variables/Libraries, in-canvas execution via a companion plugin, Code Connect, design-system search, diagrams.
+- Phase 1 — REST read tools + posting comments. ✅
+- Phase 3 — Figma plugin + WebSocket bridge, `use_figma` and live canvas tools. ✅
+- Phases 2, 4–6 (planned): Variables/Libraries, Code Connect, design-system search, diagrams.
 
-## Tools (phase 1)
+## Tools
 
+### REST (phase 1)
 | Tool | Purpose |
 |------|---------|
 | `whoami` | Current Figma user |
@@ -17,9 +19,18 @@ Phases 2–6 (planned): Figma Variables/Libraries, in-canvas execution via a com
 | `get_styles` | All styles in a file |
 | `get_comments` | Read comments |
 | `post_comment` | Add a comment (or reply) |
-| `get_image` | Export nodes as PNG/JPG/SVG/PDF |
+| `get_image` | Export nodes as PNG/JPG/SVG/PDF (via Figma render service) |
 
-All tools accept either a raw `file_key` or a full Figma URL — both work.
+### Plugin bridge (phase 3)
+| Tool | Purpose |
+|------|---------|
+| `bridge_status` | Whether the companion plugin is connected |
+| `use_figma` | Execute a JS snippet inside the plugin; `figma`, `selection`, `currentPage` in scope |
+| `get_selection` | Summary of selected nodes |
+| `get_current_page` | Current page + selection |
+| `get_screenshot` | Base64 PNG/JPG/SVG of selection or specific nodes |
+
+REST tools accept either a raw `file_key` or a full Figma URL.
 
 ## Setup
 
@@ -27,8 +38,13 @@ All tools accept either a raw `file_key` or a full Figma URL — both work.
 
 ```powershell
 npm install
+cd plugin
+npm install
+cd ..
 npm run build
 ```
+
+`npm run build` builds both the MCP server (`dist/`) and the Figma plugin bundles (`plugin/dist/`).
 
 ### 2. Configure token
 
@@ -50,9 +66,10 @@ Then edit `.env`:
 ```env
 FIGMA_TOKEN=figd_xxxxxxxxxxxxxxxxxxxxxxxx
 FIGMA_DEFAULT_FILE_KEY=          # optional
+FIGMA_BRIDGE_PORT=7575           # optional, WebSocket port for the plugin bridge
 ```
 
-> Never paste the token into the chat or commit it to git. `.env` is in `.gitignore`.
+> `.env` is in `.gitignore`.
 
 ### 3. Wire up LM Studio
 
@@ -76,16 +93,42 @@ The server reads `FIGMA_TOKEN` from the `.env` file next to itself, so you don't
 
 Reload LM Studio. Pick a model that supports tool calling (Gemma 4 instruct variants do), open chat, and you should see the `gemma-figma` tools available.
 
-### 4. Sanity check (without LM Studio)
+### 4. Install the Figma plugin
+
+The plugin bridges live canvas access to the MCP server over a local WebSocket.
+
+1. Open **Figma desktop** (the plugin bridge requires desktop, not the browser).
+2. Top menu → **Plugins → Development → Import plugin from manifest…**
+3. Select `plugin/manifest.json` in this repo.
+4. Run the plugin: **Plugins → Development → Gemma 4 MCP Bridge**.
+5. The plugin window shows a green dot when it's connected to the MCP server on `ws://127.0.0.1:7575`.
+
+Once connected, the `use_figma`, `get_selection`, `get_current_page`, and `get_screenshot` tools start working.
+
+#### `use_figma` example
+
+```js
+// Snippet body passed to use_figma. `figma`, `selection`, `currentPage` are in scope.
+const rect = figma.createRectangle();
+rect.x = 100;
+rect.y = 100;
+rect.resize(200, 120);
+rect.fills = [{ type: "SOLID", color: { r: 0.1, g: 0.6, b: 0.95 } }];
+figma.currentPage.appendChild(rect);
+return { created: rect.id };
+```
+
+### 5. Sanity check (without LM Studio)
 
 ```powershell
 npm run dev
 ```
 
-The server starts on stdio and prints `[gemma-figma-mcp] ready on stdio` to stderr. Press Ctrl+C to stop. (Stdio servers are usually exercised by the MCP client, not directly.)
+The server starts on stdio, opens the WebSocket bridge on `ws://127.0.0.1:7575`, and prints `[gemma-figma-mcp] ready on stdio` to stderr. Press Ctrl+C to stop. (Stdio servers are usually exercised by an MCP client, not directly.)
 
 ## Notes
 
 - Figma REST responses can be large. Prefer `get_metadata` first, then `get_node` for specific subtrees, rather than `get_file` on every call.
-- `get_image` returns S3 URLs that expire ~30 days after generation.
+- `get_image` (REST) returns S3 URLs that expire ~30 days after generation. `get_screenshot` (plugin) returns inline base64.
+- The plugin bridge expects a single Figma instance. If you open the plugin in two Figma windows, only the latest connection is kept.
 - Variables and Libraries (phase 2) require Enterprise-tier plan for full coverage.

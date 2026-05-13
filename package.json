@@ -8,18 +8,22 @@
     "gemma-figma-mcp": "dist/server.js"
   },
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && npm run build:plugin",
+    "build:server": "tsc",
+    "build:plugin": "cd plugin && npm run build",
     "start": "node dist/server.js",
     "dev": "tsx src/server.ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit && cd plugin && npm run typecheck"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.4",
     "dotenv": "^16.4.5",
+    "ws": "^8.18.0",
     "zod": "^3.23.8"
   },
   "devDependencies": {
     "@types/node": "^22.10.2",
+    "@types/ws": "^8.5.13",
     "tsx": "^4.19.2",
     "typescript": "^5.7.2"
   },

@@ -4,6 +4,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
 import { FigmaClient, FigmaError, parseFileKey } from "./figma.js";
+import { PluginBridge } from "./bridge.js";
 
 const token = process.env.FIGMA_TOKEN;
 if (!token) {
@@ -17,6 +18,9 @@ const figma = new FigmaClient({
   token,
   defaultFileKey: process.env.FIGMA_DEFAULT_FILE_KEY || undefined,
 });
+
+const bridgePort = Number(process.env.FIGMA_BRIDGE_PORT ?? 7575);
+const bridge = new PluginBridge({ port: bridgePort });
 
 const server = new McpServer({
   name: "gemma-figma-mcp",
@@ -238,11 +242,110 @@ server.registerTool(
     ),
 );
 
+server.registerTool(
+  "bridge_status",
+  {
+    title: "Check Figma plugin bridge status",
+    description:
+      "Returns whether the companion Figma plugin is connected to the MCP server's WebSocket bridge.",
+    inputSchema: {},
+  },
+  async () =>
+    run(async () => ({
+      connected: bridge.isConnected(),
+      port: bridgePort,
+      hint: bridge.isConnected()
+        ? "Plugin is connected — use_figma / get_selection / get_screenshot are usable."
+        : "Plugin not connected. In Figma desktop: Plugins → Development → Import plugin from manifest, then run 'Gemma 4 MCP Bridge'.",
+    })),
+);
+
+server.registerTool(
+  "use_figma",
+  {
+    title: "Execute JavaScript inside the Figma plugin sandbox",
+    description:
+      "Runs the given JS snippet inside the connected Figma plugin. `figma`, `selection`, and `currentPage` are in scope. Use `return value` (or set the last expression) to return data. The snippet is wrapped in an async function, so `await` is allowed.",
+    inputSchema: {
+      code: z
+        .string()
+        .min(1)
+        .describe(
+          "Body of an async function executed with figma, selection, currentPage in scope. Use 'return ...' to surface a value.",
+        ),
+      timeout_ms: z
+        .number()
+        .int()
+        .min(100)
+        .max(120_000)
+        .optional()
+        .describe("Per-call timeout. Default 30000."),
+    },
+  },
+  async ({ code, timeout_ms }) =>
+    run(() => bridge.send("exec", { code }, timeout_ms)),
+);
+
+server.registerTool(
+  "get_selection",
+  {
+    title: "Get the current Figma selection",
+    description:
+      "Returns a summary of currently selected nodes in the active page of the connected Figma file.",
+    inputSchema: {},
+  },
+  async () => run(() => bridge.send("get_selection")),
+);
+
+server.registerTool(
+  "get_current_page",
+  {
+    title: "Get the active Figma page",
+    description:
+      "Returns the active page (id, name, child count, selection) of the connected Figma file.",
+    inputSchema: {},
+  },
+  async () => run(() => bridge.send("get_current_page")),
+);
+
+server.registerTool(
+  "get_screenshot",
+  {
+    title: "Screenshot Figma nodes",
+    description:
+      "Exports nodes as base64-encoded PNG/JPG/SVG via the plugin. With no node_ids, exports the current selection.",
+    inputSchema: {
+      node_ids: z
+        .array(z.string().min(1))
+        .optional()
+        .describe("Node IDs to render. Omit to use the current selection."),
+      format: z.enum(["PNG", "JPG", "SVG"]).optional().default("PNG"),
+      scale: z.number().min(0.1).max(4).optional().default(2),
+    },
+  },
+  async ({ node_ids, format, scale }) =>
+    run(() =>
+      bridge.send("get_screenshot", { node_ids, format, scale }, 60_000),
+    ),
+);
+
 async function main() {
   const transport = new StdioServerTransport();
   await server.connect(transport);
   console.error("[gemma-figma-mcp] ready on stdio");
 }
+
+function shutdown() {
+  bridge.close();
+}
+process.on("SIGINT", () => {
+  shutdown();
+  process.exit(0);
+});
+process.on("SIGTERM", () => {
+  shutdown();
+  process.exit(0);
+});
 
 main().catch((err) => {
   console.error("[gemma-figma-mcp] fatal:", err);

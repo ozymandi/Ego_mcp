@@ -7,7 +7,8 @@ export type RequestType =
   | "exec"
   | "get_selection"
   | "get_current_page"
-  | "get_screenshot";
+  | "get_screenshot"
+  | "place_image";
 
 export interface Request {
   id: string;

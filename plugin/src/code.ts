@@ -68,6 +68,21 @@ async function handle(req: WireRequest): Promise<unknown> {
         },
       );
 
+    case "place_image":
+      return placeImage(
+        req.payload as {
+          base64: string;
+          mime_type?: string;
+          x: number;
+          y: number;
+          width?: number;
+          height?: number;
+          name?: string;
+          parent_id?: string;
+          fit?: "FILL" | "FIT" | "CROP" | "TILE";
+        },
+      );
+
     default:
       throw new Error(`Unknown request type: ${req.type}`);
   }
@@ -160,6 +175,75 @@ async function screenshot(payload: {
       base64: bytesToBase64(bytes),
     });
   }
+  return out;
+}
+
+async function placeImage(payload: {
+  base64: string;
+  mime_type?: string;
+  x: number;
+  y: number;
+  width?: number;
+  height?: number;
+  name?: string;
+  parent_id?: string;
+  fit?: "FILL" | "FIT" | "CROP" | "TILE";
+}) {
+  if (!payload || typeof payload.base64 !== "string") {
+    throw new Error("place_image: payload.base64 is required");
+  }
+  const bytes = base64ToBytes(payload.base64);
+  const image = figma.createImage(bytes);
+  const size = await image.getSizeAsync();
+
+  const rect = figma.createRectangle();
+  const targetW = payload.width ?? size.width;
+  const targetH = payload.height ?? size.height;
+  rect.x = payload.x;
+  rect.y = payload.y;
+  rect.resize(targetW, targetH);
+  rect.name = payload.name ?? "Imported image";
+  rect.fills = [
+    {
+      type: "IMAGE",
+      imageHash: image.hash,
+      scaleMode: payload.fit ?? "FILL",
+    },
+  ];
+
+  let parent: BaseNode = figma.currentPage;
+  if (payload.parent_id) {
+    const p = await figma.getNodeByIdAsync(payload.parent_id);
+    if (!p || !("appendChild" in p)) {
+      throw new Error(
+        `place_image: parent_id ${payload.parent_id} not found or doesn't accept children`,
+      );
+    }
+    parent = p;
+  }
+  (parent as ChildrenMixin).appendChild(rect);
+
+  return {
+    id: rect.id,
+    name: rect.name,
+    type: rect.type,
+    width: rect.width,
+    height: rect.height,
+    image_hash: image.hash,
+    natural_size: size,
+    fit: payload.fit ?? "FILL",
+  };
+}
+
+function base64ToBytes(b64: string): Uint8Array {
+  const f = figma as unknown as { base64Decode?: (s: string) => Uint8Array };
+  if (typeof f.base64Decode === "function") {
+    return f.base64Decode(b64);
+  }
+  // Fallback for older plugin runtimes that lack figma.base64Decode.
+  const bin = atob(b64);
+  const out = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
   return out;
 }
 

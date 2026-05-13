@@ -13,3 +13,4 @@ ego.env
 .claude/
 screenshots/
 .cache/
+.workspaces.json

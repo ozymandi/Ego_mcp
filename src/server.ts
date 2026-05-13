@@ -15,6 +15,8 @@ import { registerCodeConnectTools } from "./tools-code-connect.js";
 import { registerDesignSystemTools } from "./tools-design-system.js";
 import { registerDiagramTools } from "./tools-diagrams.js";
 import { registerFigJamTools } from "./tools-figjam.js";
+import { WorkspaceRegistry } from "./workspaces.js";
+import { registerFilesystemTools } from "./tools-filesystem.js";
 
 // Resolve .env relative to this script, not process.cwd(). LM Studio (and
 // other MCP clients) launch the server from arbitrary working directories.
@@ -39,6 +41,9 @@ const bridgeUrl =
   process.env.FIGMA_BRIDGE_URL ??
   `ws://localhost:${process.env.FIGMA_BRIDGE_PORT ?? 7575}`;
 const bridge = new PluginBridge({ url: bridgeUrl });
+
+const workspacesFile = path.resolve(here, "../.workspaces.json");
+const workspaces = new WorkspaceRegistry(workspacesFile);
 
 const server = new McpServer({
   name: "gemma-figma-mcp",
@@ -415,6 +420,7 @@ registerCodeConnectTools(server, figma);
 registerDesignSystemTools(server, figma);
 registerDiagramTools(server, bridge);
 registerFigJamTools(server, bridge);
+registerFilesystemTools(server, workspaces, bridge);
 registerHelpTools(server);
 
 async function main() {

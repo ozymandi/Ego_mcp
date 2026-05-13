@@ -9,6 +9,7 @@ const TOPICS = [
   "design-system",
   "diagrams",
   "figjam",
+  "filesystem",
   "examples",
   "troubleshoot",
 ] as const;
@@ -25,6 +26,7 @@ Call \`help\` with one of these topics:
 - \`help("design-system")\` — index and search a team's published library
 - \`help("diagrams")\` — flowcharts and Mermaid rendering
 - \`help("figjam")\` — sticky notes and connectors
+- \`help("filesystem")\` — workspaces, reading/writing files, image import
 - \`help("examples")\` — copy-paste prompts you can try
 - \`help("troubleshoot")\` — fix common problems
 
@@ -435,6 +437,72 @@ unlocks connectors in design files too).
 \`\`\`
 `;
 
+const FILESYSTEM = `# Filesystem & workspaces
+
+Lets the model read and write files on your machine — but only inside
+directories that have been explicitly registered as **workspaces**.
+Outside those roots, the model has no filesystem access at all.
+
+## Workflow
+
+1. **You** (or the model, with your approval) call \`register_workspace({
+   name, path })\` to add a folder. Path must be absolute and exist. The
+   registry persists in \`.workspaces.json\` next to the MCP server.
+2. From then on, any file tool needs \`workspace: '<name>'\` and a
+   workspace-relative \`path\`. Absolute paths in those args are rejected.
+   \`..\` segments that escape the root are rejected.
+3. \`unregister_workspace\` removes a workspace from the list. Files on
+   disk are NOT touched.
+
+## Tools
+
+- \`register_workspace(name, path, description?, force?)\`
+- \`unregister_workspace(name)\`
+- \`list_workspaces()\`
+- \`list_dir(workspace, path?)\` — entries with size + mtime
+- \`read_text_file(workspace, path, encoding?, max_bytes?)\`
+- \`read_binary_file(workspace, path, max_bytes?)\` — base64
+- \`write_text_file(workspace, path, content, overwrite?, encoding?)\`
+- \`make_dir(workspace, path)\` — recursive
+- \`move_path(workspace, from, to, overwrite?)\` — within the same workspace
+- \`delete_path(workspace, path, recursive?)\` — needs \`recursive=true\` for non-empty dirs
+- \`import_image_to_figma(workspace, path, x, y, width?, height?, name?, parent_id?, fit?)\`
+
+## Safety defaults
+
+- Some paths refuse to register without \`force=true\`: drive roots,
+  \`C:\\Windows\`, \`Program Files\`, \`/etc\`, \`/usr\`, \`/var\`, the user
+  home/profile root.
+- \`write_text_file\` refuses to overwrite by default.
+- \`move_path\` refuses to overwrite by default.
+- \`delete_path\` refuses non-empty directories without \`recursive=true\`.
+
+## Image import
+
+\`import_image_to_figma\` reads a PNG/JPG/GIF/WEBP from a workspace,
+ships the bytes to the plugin, and the plugin places a rectangle with an
+image fill. Default fit is \`FILL\`; other options: \`FIT\`, \`CROP\`, \`TILE\`.
+Without explicit \`width\`/\`height\`, the image's natural size is used.
+
+## Typical session
+
+\`\`\`
+register_workspace({ name: "refs", path: "C:/Users/me/Figma-refs" })
+list_dir({ workspace: "refs" })
+import_image_to_figma({
+  workspace: "refs",
+  path: "instagram-profile.png",
+  x: 0, y: 0,
+})
+make_dir({ workspace: "refs", path: "sorted/onboarding" })
+move_path({
+  workspace: "refs",
+  from: "instagram-profile.png",
+  to: "sorted/onboarding/instagram-profile.png",
+})
+\`\`\`
+`;
+
 const BODIES: Record<Topic, string> = {
   overview: OVERVIEW,
   canvas: CANVAS,
@@ -443,6 +511,7 @@ const BODIES: Record<Topic, string> = {
   "design-system": DESIGN_SYSTEM,
   diagrams: DIAGRAMS,
   figjam: FIGJAM,
+  filesystem: FILESYSTEM,
   examples: EXAMPLES,
   troubleshoot: TROUBLESHOOT,
 };

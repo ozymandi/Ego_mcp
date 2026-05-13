@@ -43,6 +43,24 @@ MCP server that connects **Gemma 4** running in **LM Studio** to **Figma**.
 | `get_team_component_sets` | Paginated team library component sets |
 | `get_team_styles` | Paginated team library styles |
 
+### Filesystem workspaces (phase 7)
+| Tool | Purpose |
+|------|---------|
+| `register_workspace` | Add a directory as a named workspace |
+| `unregister_workspace` | Remove a workspace (files untouched) |
+| `list_workspaces` | Show all registered workspaces + their state |
+| `list_dir` | List contents under workspace/path |
+| `read_text_file` | Read a text file |
+| `read_binary_file` | Read a binary file as base64 |
+| `write_text_file` | Write a text file (auto-creates parent dirs) |
+| `make_dir` | Create directory (with parents) |
+| `move_path` | Rename or move within the same workspace |
+| `delete_path` | Delete file or directory (recursive opt-in) |
+| `import_image_to_figma` | Read an image from disk and place it on the Figma canvas |
+
+All filesystem operations are sandboxed to registered workspaces. Workspace
+registry is stored locally in `.workspaces.json` (gitignored).
+
 ### Design system search, diagrams, FigJam (phase 6)
 | Tool | Purpose |
 |------|---------|

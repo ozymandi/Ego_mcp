@@ -1,7 +1,14 @@
 import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 
-const TOPICS = ["overview", "canvas", "rest", "examples", "troubleshoot"] as const;
+const TOPICS = [
+  "overview",
+  "canvas",
+  "rest",
+  "code-connect",
+  "examples",
+  "troubleshoot",
+] as const;
 type Topic = (typeof TOPICS)[number];
 
 const INDEX = `# Gemma 4 ↔ Figma MCP — help
@@ -11,6 +18,7 @@ Call \`help\` with one of these topics:
 - \`help("overview")\` — what this server is and how the pieces fit together
 - \`help("canvas")\` — create/edit nodes on the canvas
 - \`help("rest")\` — read files via the Figma REST API
+- \`help("code-connect")\` — map Figma components to your code
 - \`help("examples")\` — copy-paste prompts you can try
 - \`help("troubleshoot")\` — fix common problems
 
@@ -262,10 +270,68 @@ the file path in the tool response.
 - **Plugin**: the gray log area at the bottom of the plugin window.
 `;
 
+const CODE_CONNECT = `# Code Connect
+
+Map Figma components to real code components in a repository. The result
+is that Figma's Dev Mode shows the actual code snippet (and props) for the
+selected component — instead of generic CSS — using \`*.figma.ts(x)\` files
+authored by you.
+
+## Typical workflow
+
+1. \`scan_code_connect({ directory })\` — see what's already connected.
+2. Pick a Figma component (you can grab its id from \`get_selection\` or
+   \`find_nodes\` in the plugin, or from an INSTANCE node's \`componentId\`).
+3. \`get_node_props_for_connect({ file_key, node_id })\` to inspect its
+   variants / boolean / text properties.
+4. \`generate_code_connect({ file_key, node_id, framework, component_name? })\`
+   to get a ready-to-edit template (React / Vue / HTML).
+5. Tweak the \`example\` block to match how the component is actually used.
+6. \`save_code_connect({ file_path, content, overwrite? })\` to write it
+   next to the component source.
+7. \`publish_code_connect({ directory })\` to upload mappings to Figma via
+   the official CLI (it runs \`npx @figma/code-connect connect publish\`).
+   Token from \`.env\` is forwarded to the CLI as \`FIGMA_ACCESS_TOKEN\`.
+
+## Tools
+- \`scan_code_connect(directory?, max_files?)\`
+- \`read_code_connect(file_path)\`
+- \`find_node_mapping(file_key, node_id, directory?)\`
+- \`get_node_props_for_connect(file_key, node_id)\`
+- \`generate_code_connect(file_key, node_id, framework, component_name?, component_import?)\`
+- \`save_code_connect(file_path, content, overwrite?)\`
+- \`publish_code_connect(directory?, dry_run?)\`
+
+## What this MCP does NOT do
+
+The Figma Code Connect upload step uses an internal API that's only
+exposed via Figma's official CLI. We shell out to it through \`npx\` rather
+than reimplementing the protocol. If the CLI isn't installed, \`npx\` will
+install it on demand the first time you publish.
+
+## File format reminder
+
+A Code Connect file is just TypeScript:
+
+\`\`\`ts
+import figma from "@figma/code-connect";
+import { Button } from "./Button";
+
+figma.connect(Button, "https://figma.com/design/.../?node-id=12-345", {
+  props: {
+    label: figma.string("Label"),
+    variant: figma.enum("Variant", { Primary: "primary", Ghost: "ghost" }),
+  },
+  example: ({ label, variant }) => <Button variant={variant}>{label}</Button>,
+});
+\`\`\`
+`;
+
 const BODIES: Record<Topic, string> = {
   overview: OVERVIEW,
   canvas: CANVAS,
   rest: REST,
+  "code-connect": CODE_CONNECT,
   examples: EXAMPLES,
   troubleshoot: TROUBLESHOOT,
 };

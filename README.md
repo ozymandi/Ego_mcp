@@ -43,6 +43,17 @@ MCP server that connects **Gemma 4** running in **LM Studio** to **Figma**.
 | `get_team_component_sets` | Paginated team library component sets |
 | `get_team_styles` | Paginated team library styles |
 
+### Code Connect (phase 5)
+| Tool | Purpose |
+|------|---------|
+| `scan_code_connect` | Walk a directory, find `*.figma.ts(x)` files, parse `figma.connect()` calls |
+| `read_code_connect` | Read one file + its parsed connections |
+| `find_node_mapping` | For a given Figma node, find local files that map to it |
+| `get_node_props_for_connect` | Simplified `componentPropertyDefinitions` for templating |
+| `generate_code_connect` | Generate a React / Vue / HTML template for a Figma component |
+| `save_code_connect` | Write a `*.figma.ts(x)` file (refuses to overwrite unless asked) |
+| `publish_code_connect` | Shell out to `npx @figma/code-connect connect publish` |
+
 ### Canvas helpers (phase 4)
 
 Structured wrappers around `use_figma` — the model passes parameters instead of writing JavaScript. Colors accept `#RRGGBB` or `#RRGGBBAA`.

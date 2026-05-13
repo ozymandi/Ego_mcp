@@ -10,6 +10,7 @@ import { FigmaClient, FigmaError, parseFileKey } from "./figma.js";
 import { PluginBridge } from "./bridge.js";
 import { registerCanvasTools } from "./tools-canvas.js";
 import { registerHelpTools } from "./tools-help.js";
+import { registerLibraryTools } from "./tools-libraries.js";
 
 // Resolve .env relative to this script, not process.cwd(). LM Studio (and
 // other MCP clients) launch the server from arbitrary working directories.
@@ -405,6 +406,7 @@ server.registerTool(
 );
 
 registerCanvasTools(server, bridge);
+registerLibraryTools(server, figma);
 registerHelpTools(server);
 
 async function main() {

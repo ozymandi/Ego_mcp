@@ -30,6 +30,19 @@ MCP server that connects **Gemma 4** running in **LM Studio** to **Figma**.
 | `get_current_page` | Current page + selection |
 | `get_screenshot` | Saves PNG/JPG/SVG to `./screenshots/` and embeds an image content block |
 
+### Variables & libraries (phase 2)
+| Tool | Purpose |
+|------|---------|
+| `get_local_variables` | Variables & collections in a file (Enterprise) |
+| `get_published_variables` | Variables a file publishes as a library (Enterprise) |
+| `get_file_component_sets` | Component sets (variants) in a file |
+| `get_component_by_key` | Single component by global key |
+| `get_component_set_by_key` | Single component set by global key |
+| `get_style_by_key` | Single style by global key |
+| `get_team_components` | Paginated team library components |
+| `get_team_component_sets` | Paginated team library component sets |
+| `get_team_styles` | Paginated team library styles |
+
 ### Canvas helpers (phase 4)
 
 Structured wrappers around `use_figma` — the model passes parameters instead of writing JavaScript. Colors accept `#RRGGBB` or `#RRGGBBAA`.

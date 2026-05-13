@@ -101,16 +101,40 @@ Read data from any Figma file you have access to via the official API.
 These don't need the Figma desktop plugin — only a personal access token
 in \`.env\` (\`FIGMA_TOKEN\`).
 
-## Tools
+## File-level tools
 - \`whoami\` — confirm the token works
 - \`get_file(file_key)\` — full document tree (can be huge)
 - \`get_metadata(file_key)\` — top-level only, depth=1 (cheap)
 - \`get_node(file_key, node_ids[])\` — specific subtrees
 - \`get_components(file_key)\` — components defined in the file
+- \`get_file_component_sets(file_key)\` — variant groups in the file
 - \`get_styles(file_key)\` — paint/text/effect/grid styles
 - \`get_comments(file_key, as_md?)\` — read comments
 - \`post_comment(file_key, message, comment_id?)\` — add or reply
 - \`get_image(file_key, node_ids[], format?, scale?)\` — Figma-rendered PNG/JPG/SVG/PDF URLs
+
+## Variables (Enterprise plan required)
+- \`get_local_variables(file_key)\` — local variables and collections
+- \`get_published_variables(file_key)\` — variables this file publishes as a library
+
+Without Enterprise these return 403; the error message says so.
+
+## Lookup by global key
+- \`get_component_by_key(key)\`
+- \`get_component_set_by_key(key)\`
+- \`get_style_by_key(key)\`
+
+Use these when you have a key from a library reference (e.g. componentKey
+on an INSTANCE node).
+
+## Team libraries (paginated)
+- \`get_team_components(team_id, page_size?, after?)\`
+- \`get_team_component_sets(team_id, page_size?, after?)\`
+- \`get_team_styles(team_id, page_size?, after?)\`
+
+Find \`team_id\` in the team URL:
+\`https://www.figma.com/files/team/<TEAM_ID>/...\`. Use \`page_size\` up to 30
+and the cursor in the response's \`meta.cursor.after\` to paginate.
 
 ## file_key
 

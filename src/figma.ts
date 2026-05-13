@@ -143,6 +143,68 @@ export class FigmaClient {
     });
     return this.request(`/v1/images/${fileKey}${qs}`);
   }
+
+  // ---- Variables (Enterprise plan required) -----------------------------
+
+  getLocalVariables(fileKey: string): Promise<unknown> {
+    return this.request(`/v1/files/${fileKey}/variables/local`);
+  }
+
+  getPublishedVariables(fileKey: string): Promise<unknown> {
+    return this.request(`/v1/files/${fileKey}/variables/published`);
+  }
+
+  // ---- File-scoped component sets ---------------------------------------
+
+  getFileComponentSets(fileKey: string): Promise<unknown> {
+    return this.request(`/v1/files/${fileKey}/component_sets`);
+  }
+
+  // ---- Lookup by global key ---------------------------------------------
+
+  getComponentByKey(key: string): Promise<unknown> {
+    return this.request(`/v1/components/${encodeURIComponent(key)}`);
+  }
+
+  getComponentSetByKey(key: string): Promise<unknown> {
+    return this.request(`/v1/component_sets/${encodeURIComponent(key)}`);
+  }
+
+  getStyleByKey(key: string): Promise<unknown> {
+    return this.request(`/v1/styles/${encodeURIComponent(key)}`);
+  }
+
+  // ---- Team libraries (paginated) ---------------------------------------
+
+  getTeamComponents(
+    teamId: string,
+    params: { page_size?: number; after?: number | string } = {},
+  ): Promise<unknown> {
+    const qs = buildQuery(params);
+    return this.request(
+      `/v1/teams/${encodeURIComponent(teamId)}/components${qs}`,
+    );
+  }
+
+  getTeamComponentSets(
+    teamId: string,
+    params: { page_size?: number; after?: number | string } = {},
+  ): Promise<unknown> {
+    const qs = buildQuery(params);
+    return this.request(
+      `/v1/teams/${encodeURIComponent(teamId)}/component_sets${qs}`,
+    );
+  }
+
+  getTeamStyles(
+    teamId: string,
+    params: { page_size?: number; after?: number | string } = {},
+  ): Promise<unknown> {
+    const qs = buildQuery(params);
+    return this.request(
+      `/v1/teams/${encodeURIComponent(teamId)}/styles${qs}`,
+    );
+  }
 }
 
 function buildQuery(params: Record<string, unknown>): string {

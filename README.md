@@ -28,7 +28,17 @@ MCP server that connects **Gemma 4** running in **LM Studio** to **Figma**.
 | `use_figma` | Execute a JS snippet inside the plugin; `figma`, `selection`, `currentPage` in scope |
 | `get_selection` | Summary of selected nodes |
 | `get_current_page` | Current page + selection |
-| `get_screenshot` | Base64 PNG/JPG/SVG of selection or specific nodes |
+| `get_screenshot` | Saves PNG/JPG/SVG to `./screenshots/` and embeds an image content block |
+
+### Canvas helpers (phase 4)
+
+Structured wrappers around `use_figma` — the model passes parameters instead of writing JavaScript. Colors accept `#RRGGBB` or `#RRGGBBAA`.
+
+**Create:** `create_frame`, `create_rectangle`, `create_ellipse`, `create_text`, `create_line`, `clone_node`
+
+**Modify:** `move_node`, `resize_node`, `set_fill`, `set_stroke`, `set_text`, `rename_node`
+
+**Tree / utility:** `delete_nodes`, `set_selection`, `find_nodes`, `group_nodes`, `set_auto_layout`
 
 REST tools accept either a raw `file_key` or a full Figma URL.
 

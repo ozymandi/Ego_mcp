@@ -101,7 +101,7 @@ The plugin bridges live canvas access to the MCP server over a local WebSocket.
 2. Top menu → **Plugins → Development → Import plugin from manifest…**
 3. Select `plugin/manifest.json` in this repo.
 4. Run the plugin: **Plugins → Development → Gemma 4 MCP Bridge**.
-5. The plugin window shows a green dot when it's connected to the MCP server on `ws://127.0.0.1:7575`.
+5. The plugin window shows a green dot when it's connected to the MCP server on `ws://localhost:7575`.
 
 Once connected, the `use_figma`, `get_selection`, `get_current_page`, and `get_screenshot` tools start working.
 
@@ -124,7 +124,7 @@ return { created: rect.id };
 npm run dev
 ```
 
-The server starts on stdio, opens the WebSocket bridge on `ws://127.0.0.1:7575`, and prints `[gemma-figma-mcp] ready on stdio` to stderr. Press Ctrl+C to stop. (Stdio servers are usually exercised by an MCP client, not directly.)
+The server starts on stdio, opens the WebSocket bridge on `ws://localhost:7575`, and prints `[gemma-figma-mcp] ready on stdio` to stderr. Press Ctrl+C to stop. (Stdio servers are usually exercised by an MCP client, not directly.)
 
 ## Notes
 

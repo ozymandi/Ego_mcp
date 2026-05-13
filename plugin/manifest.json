@@ -3,10 +3,10 @@
   "id": "gemma-figma-mcp-bridge",
   "api": "1.0.0",
   "main": "dist/code.js",
-  "ui": "ui.html",
+  "ui": "dist/ui.html",
   "editorType": ["figma", "figjam", "dev"],
   "networkAccess": {
-    "allowedDomains": ["http://127.0.0.1:7575", "ws://127.0.0.1:7575"],
+    "allowedDomains": ["http://localhost:7575", "ws://localhost:7575"],
     "reasoning": "Local WebSocket connection to the Gemma 4 MCP server running on this machine."
   },
   "documentAccess": "dynamic-page"

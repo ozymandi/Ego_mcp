@@ -106,8 +106,8 @@ reconnectBtn.addEventListener("click", () => {
     clearTimeout(reconnectTimer);
     reconnectTimer = null;
   }
-  connect(urlInput.value.trim() || "ws://127.0.0.1:7575");
+  connect(urlInput.value.trim() || "ws://localhost:7575");
 });
 
 // Auto-connect on load.
-connect(urlInput.value.trim() || "ws://127.0.0.1:7575");
+connect(urlInput.value.trim() || "ws://localhost:7575");

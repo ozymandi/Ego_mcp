@@ -22,9 +22,12 @@ export class PluginBridge {
 
   constructor(opts: BridgeOptions) {
     this.defaultTimeoutMs = opts.defaultTimeoutMs ?? 30_000;
+    // No `host` -> listens on :: (dual-stack), so both 127.0.0.1 and ::1
+    // are accepted. Figma's plugin runtime resolves localhost to ::1 on
+    // Windows, which is why a v4-only bind silently fails.
     this.wss = new WebSocketServer({
       port: opts.port,
-      host: opts.host ?? "127.0.0.1",
+      ...(opts.host ? { host: opts.host } : {}),
     });
 
     this.wss.on("connection", (ws) => {

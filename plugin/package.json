@@ -4,7 +4,7 @@
   "private": true,
   "description": "Figma plugin bridging the Figma canvas to the Gemma 4 MCP server over WebSocket.",
   "scripts": {
-    "build": "esbuild src/code.ts --bundle --outfile=dist/code.js --target=es2017 --format=iife && esbuild src/ui.ts --bundle --outfile=dist/ui.js --target=es2017 --format=iife",
+    "build": "esbuild src/code.ts --bundle --outfile=dist/code.js --target=es2017 --format=iife && esbuild src/ui.ts --bundle --outfile=dist/ui.js --target=es2017 --format=iife && node scripts/build-ui.mjs",
     "typecheck": "tsc --noEmit",
     "watch": "esbuild src/code.ts --bundle --outfile=dist/code.js --target=es2017 --format=iife --watch"
   },

@@ -215,13 +215,20 @@ const TROUBLESHOOT = `# Troubleshooting
 
 ## "Bridge daemon not reachable" / bridge_status shows disconnected
 
-The daemon process isn't running. In a terminal in the project folder:
+The daemon process isn't running. Two ways to fix:
 
+**One-shot fix (this session only):**
 \`\`\`
 npm run bridge
 \`\`\`
+Leave the terminal open. You should see \`[daemon] listening on ws://:::7575\`.
 
-Leave it open. You should see \`[daemon] listening on ws://:::7575\`.
+**Permanent fix (recommended):** install the autostart task so the daemon
+always runs after Windows logon:
+\`\`\`
+pwsh -File scripts\\install-autostart.ps1
+\`\`\`
+Logs go to \`daemon.log\`. Remove with \`scripts\\uninstall-autostart.ps1\`.
 
 ## Plugin shows red dot "disconnected"
 

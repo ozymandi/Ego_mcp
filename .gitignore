@@ -14,3 +14,4 @@ ego.env
 screenshots/
 .cache/
 .workspaces.json
+daemon.log

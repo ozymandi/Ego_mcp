@@ -140,7 +140,26 @@ The Figma plugin and the MCP server both connect to a long-lived bridge
 daemon. The daemon owns the WebSocket port and routes wire messages
 between them. **Without the daemon running, the canvas tools won't work.**
 
-In a terminal that stays open:
+You have two options.
+
+**Option A — autostart at Windows logon (recommended).**
+
+One-time setup, no terminal to keep open:
+
+```powershell
+pwsh -File scripts\install-autostart.ps1
+```
+
+This registers a per-user Scheduled Task that:
+- starts the daemon at logon,
+- runs hidden, restarts on crash,
+- appends stdout/stderr to `daemon.log` in the project root.
+
+To remove later: `pwsh -File scripts\uninstall-autostart.ps1`.
+
+To inspect status: `Get-ScheduledTask -TaskName Gemma4FigmaMcpDaemon`.
+
+**Option B — run manually in a terminal.**
 
 ```powershell
 npm run bridge
@@ -152,8 +171,8 @@ You should see:
 [daemon] listening on ws://:::7575
 ```
 
-Leave it running. The MCP server (spawned by LM Studio) and the Figma
-plugin will both connect to it.
+Leave the terminal open. The MCP server (spawned by LM Studio) and the
+Figma plugin will both connect to it.
 
 ### 4. Wire up LM Studio
 

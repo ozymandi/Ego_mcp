@@ -144,20 +144,46 @@ You have two options.
 
 **Option A — autostart at Windows logon (recommended).**
 
-One-time setup, no terminal to keep open:
+One-time setup, no terminal to keep open.
 
-```powershell
-pwsh -File scripts\install-autostart.ps1
-```
+1. If you have a manual `npm run bridge` terminal open, close it (Ctrl+C).
+2. In PowerShell from the project folder, run:
 
-This registers a per-user Scheduled Task that:
-- starts the daemon at logon,
-- runs hidden, restarts on crash,
-- appends stdout/stderr to `daemon.log` in the project root.
+   ```powershell
+   pwsh -File scripts\install-autostart.ps1
+   ```
 
-To remove later: `pwsh -File scripts\uninstall-autostart.ps1`.
+   If you don't have PowerShell 7 (`pwsh`), use the bundled Windows
+   PowerShell instead — same script, just allow the unsigned file for
+   this one run:
 
-To inspect status: `Get-ScheduledTask -TaskName Gemma4FigmaMcpDaemon`.
+   ```powershell
+   powershell -ExecutionPolicy Bypass -File scripts\install-autostart.ps1
+   ```
+
+3. The script registers a per-user Scheduled Task, **starts it
+   immediately**, and prints `Current state: Running`. Look for the
+   final lines telling you where the log goes.
+4. In Figma, click **Reconnect** in the plugin window — the dot turns
+   green within a second or two.
+
+What the task does:
+- starts the daemon at every Windows logon,
+- runs hidden (no terminal window),
+- restarts on crash (up to 5 retries, 1-minute interval),
+- appends stdout + stderr to `daemon.log` in the project root.
+
+Useful commands:
+
+| Action | Command |
+|--------|---------|
+| Check status | `Get-ScheduledTask -TaskName Gemma4FigmaMcpDaemon` |
+| Stop without removing | `Stop-ScheduledTask -TaskName Gemma4FigmaMcpDaemon` |
+| Start again | `Start-ScheduledTask -TaskName Gemma4FigmaMcpDaemon` |
+| Tail the log | `Get-Content daemon.log -Tail 30 -Wait` |
+| Remove autostart | `pwsh -File scripts\uninstall-autostart.ps1` |
+
+The task is per-user and needs no admin privileges.
 
 **Option B — run manually in a terminal.**
 

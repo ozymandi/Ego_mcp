@@ -57,7 +57,9 @@ Reach feature parity with the official Figma Dev Mode MCP that Claude Code uses,
 
 **2026-10-11, docs refresh:** README (intro, Quick start, plugin section, 'check without a model', Scripts table, architecture, notes), package.json description, help topics (overview with 88 tools and autostart, canvas topic lists phase-8 tools, REST variables point to plugin tools, examples, troubleshooting: thinking models, stale plugin build, logs).
 
-**Next step (designer's call):** a longer live task (screen from a design system), smaller models (Gemma 4 26B-A4B / 12B), `FIGMA_MCP_PROFILE` env filter for clients without tool filtering (LM Studio chat), remaining P3 items only if asked.
+**Open proposal (2026-10-11):** `docs/proposal-figma-critique.md` — `critique_design` tool porting ~30 of Impeccable's 48 detector rules to Figma nodes plus 8 Figma-only rules; 15–18 h in four stages. Impeccable itself installs into Hermes with `npx impeccable install --providers=hermes --scope=global` (skill 13 KB + command references up to 62 KB; tight on 32k with the design profile).
+
+**Next step (designer's call):** approve/trim the critique proposal; otherwise a longer live task, smaller models, `FIGMA_MCP_PROFILE` for LM Studio chat, remaining P3 items only if asked.
 
 **Open questions:** which local models to target first (Gemma 4 26B-A4B / 31B, Qwen3.8 27B). Models have vision — screenshots stay inline (decided 2026-10-11). Client priority (2026-10-11): 1) **Hermes Agent** over LM Studio (local models), 2) Claude Code + Codex (big LLMs), 3) LM Studio chat (uncertain). Hermes — it accumulates skills, so the repo should ship a seed SKILL.md (proposal P2.0) and README `tools.include` profiles instead of in-server profiles.
 

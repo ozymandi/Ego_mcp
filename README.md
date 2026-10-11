@@ -13,6 +13,7 @@ with local models (Qwen3.8 27B, Gemma 4) via LM Studio, **Claude Code** and
 - Phase 5 — Code Connect tools. ✅
 - Phase 6 — Design system search, diagrams, FigJam. ✅
 - Phase 7 — Sandboxed filesystem workspaces + image import. ✅
+- Phase 8 — Design spec, pages, components/instances, variables, icons (plugin). ✅
 - Agent skill (`skills/figma-mcp/`) for Hermes Agent / Claude Code / Codex. ✅
 
 ## Tools
@@ -91,6 +92,24 @@ registry is stored locally in `.workspaces.json` (gitignored).
 | `generate_code_connect` | Generate a React / Vue / HTML template for a Figma component |
 | `save_code_connect` | Write a `*.figma.ts(x)` file (refuses to overwrite unless asked) |
 | `publish_code_connect` | Shell out to `npx @figma/code-connect connect publish` |
+
+### Design spec, pages, components, variables, icons (phase 8)
+
+All through the plugin, so variables work on every Figma plan.
+
+| Tool | Purpose |
+|------|---------|
+| `get_node_spec` | One line per layer: position/size, auto-layout, sizing, fills/strokes as hex with `{variable}` names, radius, effects, typography, instances with component + props |
+| `list_pages`, `set_current_page`, `zoom_to` | Page navigation and viewport |
+| `list_components` | Components / component sets on the page (or whole file) with keys and variants |
+| `create_instance` | Place an instance by library `component_key` or local `component_id`, optionally with `properties` |
+| `get_instance_properties`, `set_instance_properties`, `swap_instance`, `detach_instance` | Work with instances |
+| `create_component`, `combine_as_variants` | Build components and variant sets |
+| `list_variable_collections`, `list_variables`, `create_variable_collection`, `create_variable`, `set_variable_value` | Local variables (colors as hex, aliases as `VariableID:...`) |
+| `bind_variable` | Bind a variable to fill, stroke, width/height, padding, cornerRadius, itemSpacing, characters, opacity, … |
+| `get_variable_defs` | Every variable and style bound in a subtree, with resolved values |
+| `search_icons`, `insert_icon` | Lucide icon set (2000+) placed as vectors |
+| `create_from_svg` | Import any SVG string |
 
 ### Canvas helpers (phase 4)
 
@@ -239,7 +258,8 @@ mcp_servers:
       include: [bridge_status, get_current_page, get_selection, find_nodes, get_screenshot,
                 use_figma, create_frame, create_rectangle, create_ellipse, create_text, create_line,
                 clone_node, move_node, resize_node, set_fill, set_stroke, set_text, rename_node,
-                delete_nodes, set_selection, group_nodes, set_auto_layout]
+                delete_nodes, set_selection, group_nodes, set_auto_layout,
+                get_node_spec, create_instance, insert_icon, list_pages, set_current_page]
 
 skills:
   external_dirs:
@@ -251,9 +271,9 @@ matches the job. Local 27B-class models work best with `core`.
 
 | Profile | `tools.include` |
 |---------|-----------------|
-| `core` (canvas only, ~22 tools) | the list above |
-| `design` (core + reading files, variables, design system, images) | core + `get_metadata, get_node, get_components, get_styles, get_image, get_local_variables, get_file_component_sets, index_design_system, search_design_system, list_workspaces, list_dir, read_text_file, write_text_file, import_image_to_figma, create_flowchart, mermaid_to_canvas, create_sticky, create_connector` |
-| `full` | omit the `tools:` block |
+| `core` (canvas, ~27 tools) | the list above plus `get_node_spec, create_instance, insert_icon, list_pages, set_current_page` |
+| `design` (core + file reads, components, variables, icons, design system, images, diagrams; ~62 tools) | see `scripts/eval/profiles.json` — copy its `design` array |
+| `full` (88 tools) | omit the `tools:` block |
 
 Leave `supports_parallel_tool_calls` unset: canvas writes must run one at a time.
 Keep `help` out of the include list — the skill replaces it.

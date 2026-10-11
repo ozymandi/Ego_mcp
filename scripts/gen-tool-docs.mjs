@@ -20,6 +20,11 @@ const outFile = path.join(root, "skills", "figma-mcp", "references", "tools.md")
 const GROUPS = [
   ["server.js", "Core: REST reads + plugin bridge"],
   ["tools-canvas.js", "Canvas helpers (plugin)"],
+  ["tools-spec.js", "Design spec (plugin)"],
+  ["tools-pages.js", "Pages (plugin)"],
+  ["tools-components.js", "Components & instances (plugin)"],
+  ["tools-variables.js", "Variables (plugin)"],
+  ["tools-svg.js", "SVG & icons (plugin)"],
   ["tools-libraries.js", "Variables & libraries (REST)"],
   ["tools-design-system.js", "Design system search (REST + local cache)"],
   ["tools-diagrams.js", "Diagrams (plugin)"],

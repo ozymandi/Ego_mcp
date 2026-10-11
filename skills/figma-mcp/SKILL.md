@@ -22,7 +22,9 @@ Tool names below are bare (`get_screenshot`). Your client may prefix them (`mcp_
 ## 2. Workflow
 
 1. **Inspect first.** `get_current_page` for page + selection, `find_nodes` (regex on name, optional type) to locate things, `get_screenshot` to see them. Never create on top of unknown content.
-2. **Prefer structured tools** (`create_frame`, `create_text`, `set_fill`, `set_auto_layout`, `move_node`, …) over `use_figma`. They validate inputs and load fonts for you. Use `use_figma` only when no structured tool covers the need (components, variables, instances, constraints, effects, bulk edits).
+2. **Prefer structured tools** (`create_frame`, `create_text`, `set_fill`, `set_auto_layout`, `create_instance`, `insert_icon`, `bind_variable`, …) over `use_figma`. They validate inputs and load fonts for you. Use `use_figma` only when no structured tool covers the need (constraints, effects, bulk edits, unusual node types).
+2a. **Icons are never drawn from lines or text.** Use `insert_icon` (Lucide) or `create_from_svg`. If a design system has icon components, `create_instance` them instead.
+2b. **Reuse the design system.** Before building a button, card, input or nav from scratch, check `list_components` (this file) or `search_design_system` (team library) and place `create_instance`; set its `properties`.
 3. **Build top-down.** Create the container frame, then children with `parent_id`. Apply `set_auto_layout` on the container **before** adding many children when the layout is a stack or row.
 4. **Verify once per batch.** After a group of related writes, take **one** `get_screenshot` of the container. Do not screenshot after every call, and do not repeat a screenshot when nothing changed.
 5. **Fix, don't rebuild.** If the screenshot shows a problem, change the specific node (`move_node`, `resize_node`, `set_text`) rather than deleting and recreating.
@@ -38,6 +40,11 @@ Tool names below are bare (`get_screenshot`). Your client may prefix them (`mcp_
 | See it | `get_screenshot(node_ids?, format?, scale?)` — omit `node_ids` for the selection |
 | Create | `create_frame`, `create_rectangle`, `create_ellipse`, `create_text`, `create_line`, `clone_node` |
 | Edit | `move_node`, `resize_node`, `set_fill`, `set_stroke`, `set_text`, `rename_node`, `set_auto_layout`, `group_nodes`, `delete_nodes`, `set_selection` |
+| Understand a design before coding or editing it | `get_node_spec(node_id?)` — one line per layer: layout, sizing, fills with `{variable}` names, typography, instances + props |
+| Pages | `list_pages`, `set_current_page(page_id \| name)`, `zoom_to(node_ids)` |
+| Design-system components | `list_components(scope?)`, `create_instance(component_key \| component_id, x, y, properties?)`, `get_instance_properties`, `set_instance_properties`, `swap_instance`, `create_component`, `combine_as_variants`, `detach_instance` |
+| Variables / tokens (any plan) | `list_variable_collections`, `list_variables`, `create_variable_collection(name, modes)`, `create_variable`, `set_variable_value`, `bind_variable(node_id, field, variable_id)`, `get_variable_defs(node_id)` |
+| Icons and vectors | `search_icons(query)` → `insert_icon(name, x, y, size, color)` (Lucide, 2000+ icons); `create_from_svg(svg, x, y)` |
 | Anything else on canvas | `use_figma(code)` — see §4 and `references/snippets.md` |
 | Read a file without the plugin | `get_metadata` → `get_node(node_ids)`; `get_file` only with `depth` |
 | Export images | `get_screenshot` (plugin, saved to disk + inline) or `get_image` (REST, URLs) |

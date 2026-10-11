@@ -39,7 +39,13 @@ Reach feature parity with the official Figma Dev Mode MCP that Claude Code uses,
 
 **Done (code only):** step 4 — `scripts/eval/` (run-eval.mjs, cases.json x30, profiles.json), `npm run eval`. Not run yet: LM Studio API on :1234 was not reachable.
 
-**Next step:** (a) user re-runs the plugin -> `npm run smoke:plugin`; (b) when the LM Studio server is on, `npm run eval -- --profile core` and `--profile full --skill` for Qwen3.8 27B and Gemma 4; (c) step 5: instances/components, variables, get_node_spec.
+**2026-10-11, later:** smoke-plugin ALL PASS (11/11) after replacing the Proxy with a forwarding wrapper; committed + pushed as 2a00ef4.
+
+**Done (code, partly verified):** step 5 / phase 8 — 22 new plugin-side tools in `src/tools-spec.ts` (get_node_spec), `tools-pages.ts`, `tools-components.ts` (list/create_instance/get+set props/swap/create_component/combine_as_variants/detach), `tools-variables.ts` (collections, variables, values, bind_variable, get_variable_defs), `tools-svg.ts` (create_from_svg, insert_icon + search_icons over the `lucide` package, 2137 icons). 88 tools total; full payload 39.5 KB, core 27 tools, design 62. `scripts/smoke-tools.mjs` runs them through the real MCP server: pages, spec, icons, svg, create_component PASS; the rest was blocked by a plugin bug (jsonSafe treated any {id,type,name} result as a node and dropped the other fields) — fixed in plugin, rebuilt (stamp 10:40), needs plugin restart to verify. Docs updated (README phase 8, SKILL.md tool map + rules 2a/2b, tools.md regenerated). Not committed.
+
+**2026-10-11, later:** plugin restarted (stamp 10:40); smoke-tools ALL PASS (34 checks) after two fixes (`set` name clash with the snippet helper in combine_as_variants; FLOAT scope WIDTH_HEIGHT). smoke-plugin ALL PASS again. Committed + pushed as phase 8.
+
+**Next step:** eval runs when the LM Studio server is on (port 1234 was closed every time I checked): `npm run eval -- --profile core` and `--profile full --skill` for Qwen3.8 27B and Gemma 4. Then compare and tune descriptions/skill from the failures. Remaining P3 items (styles/effects wrappers, Motion/slots, REST folders) only if the designer asks.
 
 **Open questions:** which local models to target first (Gemma 4 26B-A4B / 31B, Qwen3.8 27B). Models have vision — screenshots stay inline (decided 2026-10-11). Client priority (2026-10-11): 1) **Hermes Agent** over LM Studio (local models), 2) Claude Code + Codex (big LLMs), 3) LM Studio chat (uncertain). Hermes — it accumulates skills, so the repo should ship a seed SKILL.md (proposal P2.0) and README `tools.include` profiles instead of in-server profiles.
 

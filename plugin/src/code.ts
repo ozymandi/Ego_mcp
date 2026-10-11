@@ -793,8 +793,14 @@ function jsonSafe(value: unknown, seen = new WeakSet<object>()): unknown {
   if (seen.has(obj)) return "[Circular]";
   seen.add(obj);
 
-  // Figma node detection — they expose `id` and `type` and `exportAsync`-ish surface.
-  if ("id" in obj && "type" in obj && "name" in obj) {
+  // Figma node detection. Plain result objects often carry id/type/name too,
+  // so require the node-only surface (parent + remove()) before summarising.
+  if (
+    "id" in obj &&
+    "type" in obj &&
+    "parent" in obj &&
+    typeof (obj as { remove?: unknown }).remove === "function"
+  ) {
     return summarizeNode(obj as SceneNode);
   }
   if (Array.isArray(value)) {

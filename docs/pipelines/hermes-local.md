@@ -5,14 +5,17 @@ Studio serves a local model, this server exposes Figma. Hermes loads the full
 tool list of the server into every request and loads `SKILL.md` on demand,
 so the profile choice matters here more than anywhere else.
 
-Tested: Qwen3.8 27B and Gemma 4 31B on an RTX 5090, context 32 768.
+Tested: Qwen3.8 27B and Gemma 4 31B on an RTX 5090. **Hermes requires a model
+context of at least 64k**, so load models with `--context-length 65536` for
+Hermes (the eval scripts in this repo are fine with 32k). Step-by-step setup:
+[../workflows/examples/hermes-step-by-step.md](../workflows/examples/hermes-step-by-step.md).
 
 ## 1. LM Studio
 
 ```powershell
 lms server start
-lms load qwen/qwen3.8-27b --context-length 32768 -y      # or google/gemma-4-31b
-lms ps                                                     # CONTEXT must say 32768
+lms load qwen/qwen3.8-27b --context-length 65536 -y      # or google/gemma-4-31b; Hermes needs >= 64k
+lms ps                                                     # CONTEXT must say 65536
 ```
 
 - **Context length.** Load with `--context-length 32768` (or set it in the

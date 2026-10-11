@@ -10,6 +10,8 @@ tell you what to ask for, in what order, and what "done" means.
 | **Edit a part** — analyse a region, propose changes with reasons, apply after approval, show before/after | an existing design needs a change in one area | [02-edit-and-propose.md](02-edit-and-propose.md) |
 | **Atomize for hand-off** — turn a finished design into tokens, components with variants and a clean spec for frontend | the prototype is final and goes to Framer, Webflow or code | [03-atomize-for-handoff.md](03-atomize-for-handoff.md) |
 
+Operational guide: [examples/hermes-step-by-step.md](examples/hermes-step-by-step.md) — LM Studio (64k context), Hermes install and config, plugin, first session, daily start.
+
 Worked example: [examples/agency-brutalist-hermes.md](examples/agency-brutalist-hermes.md) — a design agency site (six pages, pure blue / white / acid lime, brutalism, blackletter headings) as a Hermes session, message by message.
 
 Conventions shared by all three:

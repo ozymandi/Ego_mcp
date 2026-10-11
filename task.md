@@ -45,7 +45,9 @@ Reach feature parity with the official Figma Dev Mode MCP that Claude Code uses,
 
 **2026-10-11, later:** plugin restarted (stamp 10:40); smoke-tools ALL PASS (34 checks) after two fixes (`set` name clash with the snippet helper in combine_as_variants; FLOAT scope WIDTH_HEIGHT). smoke-plugin ALL PASS again. Committed + pushed as phase 8.
 
-**Next step:** eval runs when the LM Studio server is on (port 1234 was closed every time I checked): `npm run eval -- --profile core` and `--profile full --skill` for Qwen3.8 27B and Gemma 4. Then compare and tune descriptions/skill from the failures. Remaining P3 items (styles/effects wrappers, Motion/slots, REST folders) only if the designer asks.
+**2026-10-11, eval done:** results in `docs/eval-2026-10-11.md`. Qwen3.8 27B: core 96% / full 100%; Gemma 4 31B: core 83% (91% with skill) / full 100%. Prompt cost per turn: core ~3-4k tokens, full ~10-12k, skill +2.7k. Two fixes from the run: SKILL.md + bridge_status description no longer say "call first" (that alone took Qwen core+skill from 13% to 96%); eval cases for component/variable accept phase-8 tools. LM Studio notes: auth was disabled by the designer for the local server; models must be loaded with `--context-length 32768` (JIT reload after a server restart defaults to 8192).
+
+**Next step (designer's call):** (a) multi-step live eval (build a card / recolor a page through the real plugin) and `--runs 3` variance; (b) `find_nodes` description tweak so Gemma passes `type` instead of `name_pattern: ".*"`; (c) remaining P3 items (styles/effects wrappers, Motion/slots, REST folders) only if asked. Hermes recommendation: Qwen -> `design` profile, Gemma -> `full + skill`.
 
 **Open questions:** which local models to target first (Gemma 4 26B-A4B / 31B, Qwen3.8 27B). Models have vision — screenshots stay inline (decided 2026-10-11). Client priority (2026-10-11): 1) **Hermes Agent** over LM Studio (local models), 2) Claude Code + Codex (big LLMs), 3) LM Studio chat (uncertain). Hermes — it accumulates skills, so the repo should ship a seed SKILL.md (proposal P2.0) and README `tools.include` profiles instead of in-server profiles.
 

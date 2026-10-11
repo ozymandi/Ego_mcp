@@ -268,7 +268,7 @@ server.registerTool(
   "bridge_status",
   {
     title: "Check Figma plugin bridge status",
-    description: "Is the bridge daemon reachable and the Figma plugin connected? Call first.",
+    description: "Connection check: daemon, plugin, open file, current page. Use once per session or after a canvas tool fails; other tools do not need it first.",
     inputSchema: {},
   },
   async () =>

@@ -1,32 +1,325 @@
 [
-  { "id": "frame", "prompt": "Create a frame 320x200 named Card at 100,100.", "tool": "create_frame", "args": { "x": 100, "y": 100, "width": 320, "height": 200, "name": "Card" } },
-  { "id": "ellipse", "prompt": "Add a blue (#0d99ff) circle 80x80 at 40,40.", "tool": "create_ellipse", "args": { "width": 80, "height": 80, "fill": { "$re": "^#?0d99ff$" } } },
-  { "id": "text", "prompt": "Write the text 'Hello' at 10,10 with font size 24.", "tool": "create_text", "args": { "content": "Hello", "font_size": 24 } },
-  { "id": "selection", "prompt": "What is selected in Figma right now?", "tool": "get_selection" },
-  { "id": "page", "prompt": "What is on the current Figma page?", "tool": ["get_current_page", "find_nodes"] },
-  { "id": "find-text", "prompt": "Find all text layers on this page.", "tool": "find_nodes", "args": { "type": "TEXT" } },
-  { "id": "screenshot", "prompt": "Take a screenshot of node 12:34.", "tool": "get_screenshot", "args": { "node_ids": ["12:34"] } },
-  { "id": "move", "prompt": "Move node 12:34 to 500,300.", "tool": "move_node", "args": { "node_id": "12:34", "x": 500, "y": 300 } },
-  { "id": "resize", "prompt": "Resize node 12:34 to 200x100.", "tool": "resize_node", "args": { "node_id": "12:34", "width": 200, "height": 100 } },
-  { "id": "fill", "prompt": "Make node 12:34 red (#ff0000).", "tool": "set_fill", "args": { "node_id": "12:34", "color": { "$re": "^#?ff0000$" } } },
-  { "id": "set-text", "prompt": "Change the text of node 12:34 to 'Submit'.", "tool": "set_text", "args": { "node_id": "12:34", "content": "Submit" } },
-  { "id": "rename", "prompt": "Rename node 12:34 to 'Primary button'.", "tool": "rename_node", "args": { "node_id": "12:34", "name": "Primary button" } },
-  { "id": "delete", "prompt": "Delete nodes 12:34 and 12:35.", "tool": "delete_nodes", "args": { "node_ids": ["12:34", "12:35"] } },
-  { "id": "autolayout", "prompt": "Turn frame 12:34 into a vertical auto-layout with 8px gap and 16px padding.", "tool": "set_auto_layout", "args": { "node_id": "12:34", "direction": "VERTICAL", "item_spacing": 8, "padding": 16 } },
-  { "id": "group", "prompt": "Group nodes 12:34 and 12:35 and call the group 'Header'.", "tool": "group_nodes", "args": { "node_ids": ["12:34", "12:35"], "name": "Header" } },
-  { "id": "clone", "prompt": "Duplicate node 12:34.", "tool": "clone_node", "args": { "node_id": "12:34" } },
-  { "id": "bridge", "prompt": "Is the Figma plugin connected?", "tool": "bridge_status" },
-  { "id": "line", "prompt": "Draw a line from 0,0 to 100,100.", "tool": "create_line", "args": { "x1": 0, "y1": 0, "x2": 100, "y2": 100 } },
-  { "id": "stroke", "prompt": "Give node 12:34 a 2px black (#000000) stroke.", "tool": "set_stroke", "args": { "node_id": "12:34", "color": { "$re": "^#?000(000)?$" }, "weight": 2 } },
-  { "id": "select", "prompt": "Select nodes 12:34 and 12:35 in Figma.", "tool": "set_selection", "args": { "node_ids": ["12:34", "12:35"] } },
-  { "id": "component", "prompt": "Turn frame 12:34 into a component.", "tool": "use_figma", "args": { "code": { "$re": "createComponentFromNode" } } },
-  { "id": "variable", "prompt": "Create a local color variable named brand/primary with value #0d99ff.", "tool": "use_figma", "args": { "code": { "$re": "createVariable" } } },
-  { "id": "no-tool", "prompt": "In one sentence, what is auto-layout in Figma?", "tool": null },
-  { "id": "metadata", "prompt": "Show me the page structure of https://www.figma.com/design/ABC123xyz/Test-File", "tool": ["get_metadata", "get_file"], "args": { "file_key": { "$re": "ABC123xyz" } }, "profiles": ["design", "full"] },
-  { "id": "node", "prompt": "Get node 5:6 from file ABC123xyz.", "tool": "get_node", "args": { "file_key": { "$re": "ABC123xyz" }, "node_ids": ["5:6"] }, "profiles": ["design", "full"] },
-  { "id": "components", "prompt": "List the components in file ABC123xyz.", "tool": "get_components", "args": { "file_key": { "$re": "ABC123xyz" } }, "profiles": ["design", "full"] },
-  { "id": "comment", "prompt": "Post the comment 'Looks good' on file ABC123xyz.", "tool": "post_comment", "args": { "message": "Looks good" }, "profiles": ["full"] },
-  { "id": "image", "prompt": "Place the image hero.png from the 'assets' workspace on the canvas at 0,0.", "tool": "import_image_to_figma", "args": { "workspace": "assets", "path": { "$re": "hero\\.png$" }, "x": 0, "y": 0 }, "profiles": ["design", "full"] },
-  { "id": "ds-search", "prompt": "Search the design system for a primary button component.", "tool": "search_design_system", "args": { "query": { "$re": "button" } }, "profiles": ["design", "full"] },
-  { "id": "flowchart", "prompt": "Draw a flowchart: Start -> Process -> End.", "tool": ["create_flowchart", "mermaid_to_canvas"], "profiles": ["design", "full"] }
+  {
+    "id": "frame",
+    "prompt": "Create a frame 320x200 named Card at 100,100.",
+    "tool": "create_frame",
+    "args": {
+      "x": 100,
+      "y": 100,
+      "width": 320,
+      "height": 200,
+      "name": "Card"
+    }
+  },
+  {
+    "id": "ellipse",
+    "prompt": "Add a blue (#0d99ff) circle 80x80 at 40,40.",
+    "tool": "create_ellipse",
+    "args": {
+      "width": 80,
+      "height": 80,
+      "fill": {
+        "$re": "^#?0d99ff$"
+      }
+    }
+  },
+  {
+    "id": "text",
+    "prompt": "Write the text 'Hello' at 10,10 with font size 24.",
+    "tool": "create_text",
+    "args": {
+      "content": "Hello",
+      "font_size": 24
+    }
+  },
+  {
+    "id": "selection",
+    "prompt": "What is selected in Figma right now?",
+    "tool": "get_selection"
+  },
+  {
+    "id": "page",
+    "prompt": "What is on the current Figma page?",
+    "tool": [
+      "get_current_page",
+      "find_nodes"
+    ]
+  },
+  {
+    "id": "find-text",
+    "prompt": "Find all text layers on this page.",
+    "tool": "find_nodes",
+    "args": {
+      "type": "TEXT"
+    }
+  },
+  {
+    "id": "screenshot",
+    "prompt": "Take a screenshot of node 12:34.",
+    "tool": "get_screenshot",
+    "args": {
+      "node_ids": [
+        "12:34"
+      ]
+    }
+  },
+  {
+    "id": "move",
+    "prompt": "Move node 12:34 to 500,300.",
+    "tool": "move_node",
+    "args": {
+      "node_id": "12:34",
+      "x": 500,
+      "y": 300
+    }
+  },
+  {
+    "id": "resize",
+    "prompt": "Resize node 12:34 to 200x100.",
+    "tool": "resize_node",
+    "args": {
+      "node_id": "12:34",
+      "width": 200,
+      "height": 100
+    }
+  },
+  {
+    "id": "fill",
+    "prompt": "Make node 12:34 red (#ff0000).",
+    "tool": "set_fill",
+    "args": {
+      "node_id": "12:34",
+      "color": {
+        "$re": "^#?ff0000$"
+      }
+    }
+  },
+  {
+    "id": "set-text",
+    "prompt": "Change the text of node 12:34 to 'Submit'.",
+    "tool": "set_text",
+    "args": {
+      "node_id": "12:34",
+      "content": "Submit"
+    }
+  },
+  {
+    "id": "rename",
+    "prompt": "Rename node 12:34 to 'Primary button'.",
+    "tool": "rename_node",
+    "args": {
+      "node_id": "12:34",
+      "name": "Primary button"
+    }
+  },
+  {
+    "id": "delete",
+    "prompt": "Delete nodes 12:34 and 12:35.",
+    "tool": "delete_nodes",
+    "args": {
+      "node_ids": [
+        "12:34",
+        "12:35"
+      ]
+    }
+  },
+  {
+    "id": "autolayout",
+    "prompt": "Turn frame 12:34 into a vertical auto-layout with 8px gap and 16px padding.",
+    "tool": "set_auto_layout",
+    "args": {
+      "node_id": "12:34",
+      "direction": "VERTICAL",
+      "item_spacing": 8,
+      "padding": 16
+    }
+  },
+  {
+    "id": "group",
+    "prompt": "Group nodes 12:34 and 12:35 and call the group 'Header'.",
+    "tool": "group_nodes",
+    "args": {
+      "node_ids": [
+        "12:34",
+        "12:35"
+      ],
+      "name": "Header"
+    }
+  },
+  {
+    "id": "clone",
+    "prompt": "Duplicate node 12:34.",
+    "tool": "clone_node",
+    "args": {
+      "node_id": "12:34"
+    }
+  },
+  {
+    "id": "bridge",
+    "prompt": "Is the Figma plugin connected?",
+    "tool": "bridge_status"
+  },
+  {
+    "id": "line",
+    "prompt": "Draw a line from 0,0 to 100,100.",
+    "tool": "create_line",
+    "args": {
+      "x1": 0,
+      "y1": 0,
+      "x2": 100,
+      "y2": 100
+    }
+  },
+  {
+    "id": "stroke",
+    "prompt": "Give node 12:34 a 2px black (#000000) stroke.",
+    "tool": "set_stroke",
+    "args": {
+      "node_id": "12:34",
+      "color": {
+        "$re": "^#?000(000)?$"
+      },
+      "weight": 2
+    }
+  },
+  {
+    "id": "select",
+    "prompt": "Select nodes 12:34 and 12:35 in Figma.",
+    "tool": "set_selection",
+    "args": {
+      "node_ids": [
+        "12:34",
+        "12:35"
+      ]
+    }
+  },
+  {
+    "id": "component",
+    "prompt": "Turn frame 12:34 into a component.",
+    "tool": [
+      "create_component",
+      "use_figma"
+    ],
+    "args": {},
+    "note": "create_component in design/full; use_figma (createComponentFromNode) in core"
+  },
+  {
+    "id": "variable",
+    "prompt": "Create a local color variable named brand/primary with value #0d99ff.",
+    "tool": [
+      "create_variable",
+      "list_variable_collections",
+      "create_variable_collection",
+      "use_figma"
+    ],
+    "args": {},
+    "note": "any sensible first step: inspect collections, create one, or create the variable; use_figma in core"
+  },
+  {
+    "id": "no-tool",
+    "prompt": "In one sentence, what is auto-layout in Figma?",
+    "tool": null
+  },
+  {
+    "id": "metadata",
+    "prompt": "Show me the page structure of https://www.figma.com/design/ABC123xyz/Test-File",
+    "tool": [
+      "get_metadata",
+      "get_file"
+    ],
+    "args": {
+      "file_key": {
+        "$re": "ABC123xyz"
+      }
+    },
+    "profiles": [
+      "design",
+      "full"
+    ]
+  },
+  {
+    "id": "node",
+    "prompt": "Get node 5:6 from file ABC123xyz.",
+    "tool": "get_node",
+    "args": {
+      "file_key": {
+        "$re": "ABC123xyz"
+      },
+      "node_ids": [
+        "5:6"
+      ]
+    },
+    "profiles": [
+      "design",
+      "full"
+    ]
+  },
+  {
+    "id": "components",
+    "prompt": "List the components in file ABC123xyz.",
+    "tool": "get_components",
+    "args": {
+      "file_key": {
+        "$re": "ABC123xyz"
+      }
+    },
+    "profiles": [
+      "design",
+      "full"
+    ]
+  },
+  {
+    "id": "comment",
+    "prompt": "Post the comment 'Looks good' on file ABC123xyz.",
+    "tool": "post_comment",
+    "args": {
+      "message": "Looks good"
+    },
+    "profiles": [
+      "full"
+    ]
+  },
+  {
+    "id": "image",
+    "prompt": "Place the image hero.png from the 'assets' workspace on the canvas at 0,0.",
+    "tool": "import_image_to_figma",
+    "args": {
+      "workspace": "assets",
+      "path": {
+        "$re": "hero\\.png$"
+      },
+      "x": 0,
+      "y": 0
+    },
+    "profiles": [
+      "design",
+      "full"
+    ]
+  },
+  {
+    "id": "ds-search",
+    "prompt": "Search the design system for a primary button component.",
+    "tool": "search_design_system",
+    "args": {
+      "query": {
+        "$re": "button"
+      }
+    },
+    "profiles": [
+      "design",
+      "full"
+    ]
+  },
+  {
+    "id": "flowchart",
+    "prompt": "Draw a flowchart: Start -> Process -> End.",
+    "tool": [
+      "create_flowchart",
+      "mermaid_to_canvas"
+    ],
+    "profiles": [
+      "design",
+      "full"
+    ]
+  }
 ]

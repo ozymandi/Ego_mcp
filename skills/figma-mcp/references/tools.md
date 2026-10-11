@@ -64,7 +64,7 @@ Figma-rendered PNG/JPG/SVG/PDF of nodes via REST. Returns temporary URLs, no ima
   - `version?: string`
 
 ### `bridge_status`
-Is the bridge daemon reachable and the Figma plugin connected? Call first.
+Connection check: daemon, plugin, open file, current page. Use once per session or after a canvas tool fails; other tools do not need it first.
   (no parameters)
 
 ### `use_figma`

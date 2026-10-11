@@ -15,9 +15,10 @@ Tool names below are bare (`get_screenshot`). Your client may prefix them (`mcp_
 
 ## 1. Before you start
 
-1. Call `bridge_status`. You need `mcp_to_daemon: "connected"` **and** the plugin running in Figma desktop (green dot in the "Gemma 4 MCP Bridge" plugin window). Without the plugin, only REST tools work (`get_metadata`, `get_node`, `get_components`, `get_styles`, `get_image`, comments, libraries, Code Connect scan).
-2. Canvas tools act on **the file and page currently open in Figma desktop**, not on a `file_key`. REST tools take `file_key` or a full Figma URL.
-3. If the plugin is disconnected, tell the user to open Plugins → Development → Gemma 4 MCP Bridge and press Reconnect. Do not retry in a loop.
+1. **Act directly.** When the user asks for something concrete ("create a frame", "move node 12:34", "what is selected"), call that tool right away. Do not check connectivity first: every canvas tool reports a clear error if the daemon or plugin is missing.
+2. Call `bridge_status` only **once at the start of a session**, when the user asks whether Figma is connected, or **after a canvas tool fails** with "not reachable" / "not connected". It reports the open file, editor type, current page and plugin build.
+3. Canvas tools act on **the file and page currently open in Figma desktop**, not on a `file_key`. REST tools take `file_key` or a full Figma URL and work without the plugin (`get_metadata`, `get_node`, `get_components`, `get_styles`, `get_image`, comments, libraries, Code Connect scan).
+4. If the plugin is disconnected, tell the user to open Plugins → Development → Gemma 4 MCP Bridge and press Reconnect. Do not retry in a loop.
 
 ## 2. Workflow
 

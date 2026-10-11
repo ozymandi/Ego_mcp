@@ -26,7 +26,8 @@
     "create_instance",
     "insert_icon",
     "list_pages",
-    "set_current_page"
+    "set_current_page",
+    "critique_design"
   ],
   "design": [
     "bridge_status",
@@ -90,7 +91,9 @@
     "get_variable_defs",
     "create_from_svg",
     "insert_icon",
-    "search_icons"
+    "search_icons",
+    "critique_design",
+    "list_critique_rules"
   ],
   "full": null
 }

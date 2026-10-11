@@ -26,6 +26,7 @@ import { registerVariableTools } from "./tools-variables.js";
 import { registerSpecTools } from "./tools-spec.js";
 import { registerPageTools } from "./tools-pages.js";
 import { registerSvgTools } from "./tools-svg.js";
+import { registerCritiqueTools } from "./tools-critique.js";
 
 // Resolve .env relative to this script, not process.cwd(). LM Studio (and
 // other MCP clients) launch the server from arbitrary working directories.
@@ -494,6 +495,7 @@ registerPageTools(server, bridge);
 registerComponentTools(server, bridge);
 registerVariableTools(server, bridge);
 registerSvgTools(server, bridge);
+registerCritiqueTools(server, bridge);
 registerLibraryTools(server, figma);
 registerCodeConnectTools(server, figma);
 registerDesignSystemTools(server, figma);

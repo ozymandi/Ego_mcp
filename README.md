@@ -32,6 +32,7 @@ Measured accuracy per model: [docs/eval-2026-10-11.md](docs/eval-2026-10-11.md).
 - Phase 6 — Design system search, diagrams, FigJam. ✅
 - Phase 7 — Sandboxed filesystem workspaces + image import. ✅
 - Phase 8 — Design spec, pages, components/instances, variables, icons (plugin). ✅
+- Phase 9 — `critique_design`: deterministic design review (43 rules). ✅
 - Agent skill (`skills/figma-mcp/`) for Hermes Agent / Claude Code / Codex. ✅
 - Token diet for local models (outline reads, response cap, compact schemas), `use_figma` helpers + error hints. ✅
 - Eval harness: first-call accuracy and multi-step live tasks (`npm run eval`, `npm run eval:live`). ✅
@@ -131,6 +132,15 @@ All through the plugin, so variables work on every Figma plan.
 | `get_variable_defs` | Every variable and style bound in a subtree, with resolved values |
 | `search_icons`, `insert_icon` | Lucide icon set (2000+) placed as vectors |
 | `create_from_svg` | Import any SVG string |
+
+### Design critique (phase 9)
+
+| Tool | Purpose |
+|------|---------|
+| `critique_design` | Deterministic review of a subtree: 43 rules for contrast, type scale, tracking/leading, gradients and glows, nested cards, spacing rhythm, text overflow/occlusion, buzzwords and placeholder copy, hardcoded values vs variables, Figma hygiene. Each finding names the node and the tool that fixes it. Rule ids follow [Impeccable](https://github.com/pbakaus/impeccable)'s detector where a counterpart exists; the checks are re-implemented for Figma nodes (`src/critique/`), with the plugin supplying one snapshot per call |
+| `list_critique_rules` | The rule catalogue with severity and group |
+
+`npm run smoke:critique` builds a frame full of deliberate clichés and a clean one on the current page, expects the rules to fire on the first and stay silent on the second, and removes both.
 
 ### Canvas helpers (phase 4)
 

@@ -123,6 +123,43 @@ export const TASKS = [
     `,
   },
   {
+    id: "critique-fix",
+    setup: `
+      await figma.loadFontAsync({ family: 'Inter', style: 'Regular' });
+      const T = (chars, size, color) => { const t = figma.createText(); t.characters = chars; set(t, { fontSize: size, fills: [solid(color)] }); return t; };
+      const promo = createAutoLayout('VERTICAL', { name: 'Promo', fill: '#2563eb', padding: 24, itemSpacing: 12, counterAxisSizingMode: 'FIXED', width: 480 });
+      promo.x = 100; promo.y = 1500; figma.currentPage.appendChild(promo);
+      promo.appendChild(T('Spring offer', 28, '#ffffff'));
+      promo.appendChild(T('Save 20% on every plan until the end of April.', 14, '#9a9a9a'));
+      promo.appendChild(T('Terms apply. Offer ends April 30.', 9, '#cccccc'));
+      const outer = createAutoLayout('VERTICAL', { name: 'Details', fill: '#ffffff', cornerRadius: 12, padding: 16 });
+      const inner = createAutoLayout('VERTICAL', { name: 'Details card', fill: '#f3f4f6', cornerRadius: 12, padding: 16, counterAxisSizingMode: 'FIXED', width: 400 });
+      inner.appendChild(T('Monthly and yearly plans included.', 14, '#111111'));
+      outer.appendChild(inner); promo.appendChild(outer);
+      return promo.id;
+    `,
+    prompt: "Run a design critique on the frame named 'Promo' and fix every primary finding it reports. Keep the content and layout; only fix what the critique flags.",
+    check: `
+      const promo = figma.currentPage.findOne(n => n.name === 'Promo' && n.type === 'FRAME');
+      if (!promo) return { pass: false, reason: 'Promo frame missing' };
+      const issues = [];
+      const texts = promo.findAllWithCriteria({ types: ['TEXT'] });
+      const lum = (c) => { const f = (v) => v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); return 0.2126 * f(c.r) + 0.7152 * f(c.g) + 0.0722 * f(c.b); };
+      const blue = { r: 0x25 / 255, g: 0x63 / 255, b: 0xeb / 255 };
+      for (const t of texts) {
+        if (t.fontSize !== figma.mixed && t.fontSize < 11) issues.push(t.characters.slice(0, 20) + ' still ' + t.fontSize + 'px');
+        const onBlue = t.parent === promo;
+        const c = t.fills && t.fills[0] && t.fills[0].type === 'SOLID' ? t.fills[0].color : null;
+        if (onBlue && c) { const l1 = lum(c), l2 = lum(blue); const ratio = (Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05); if (ratio < 4.5 && !(t.fontSize >= 24 && ratio >= 3)) issues.push(t.characters.slice(0, 20) + ' contrast ' + ratio.toFixed(1)); }
+      }
+      const outer = promo.findOne(n => n.name === 'Details');
+      const inner = promo.findOne(n => n.name === 'Details card');
+      const hasSurface = (n) => n && n.fills && n.fills.some(f => f.visible !== false && f.type === 'SOLID') && (n.cornerRadius > 0 || (n.strokes && n.strokes.length));
+      if (outer && inner && hasSurface(outer) && hasSurface(inner) && inner.parent === outer) issues.push('still a card inside a card');
+      return { pass: issues.length === 0, reason: issues.join(', ') };
+    `,
+  },
+  {
     id: "read-text",
     setup: `
       await figma.loadFontAsync({ family: 'Inter', style: 'Regular' });

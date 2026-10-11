@@ -25,6 +25,7 @@ const GROUPS = [
   ["tools-components.js", "Components & instances (plugin)"],
   ["tools-variables.js", "Variables (plugin)"],
   ["tools-svg.js", "SVG & icons (plugin)"],
+  ["tools-critique.js", "Design critique (plugin + rules)"],
   ["tools-libraries.js", "Variables & libraries (REST)"],
   ["tools-design-system.js", "Design system search (REST + local cache)"],
   ["tools-diagrams.js", "Diagrams (plugin)"],

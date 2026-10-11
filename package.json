@@ -20,7 +20,8 @@
     "measure:tools": "node scripts/measure-tools.mjs",
     "smoke:plugin": "node scripts/smoke-plugin.mjs",
     "eval": "node scripts/eval/run-eval.mjs",
-    "eval:live": "node scripts/eval/run-live.mjs"
+    "eval:live": "node scripts/eval/run-live.mjs",
+    "smoke:critique": "node scripts/smoke-critique.mjs"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.4",

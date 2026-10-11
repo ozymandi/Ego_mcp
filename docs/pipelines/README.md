@@ -46,6 +46,7 @@ Prompts the models handle reliably (traces from the live eval):
 | "Turn 'Tile' into a component and place an instance at 500,1100." | `find_nodes` → `create_component` → `create_instance` |
 | "What text is inside the frame 'Info'?" | `find_nodes` → `get_node_spec` |
 | "Give me the spec of the selected screen so I can implement it." | `get_node_spec` (→ the model writes code) |
+| "Review the landing page and fix what makes it look generated." | `critique_design` → `set_fill` / `set_text` / `use_figma` per finding → `critique_design` → `get_screenshot` |
 | "Create a Light/Dark collection with brand/primary #0d99ff / #80c8ff and bind it to the card background." | `create_variable_collection` → `create_variable` → `bind_variable` |
 
 Wording that helps every model: name the target ("the frame named X", a

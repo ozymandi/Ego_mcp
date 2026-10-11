@@ -28,6 +28,7 @@ Tool names below are bare (`get_screenshot`). Your client may prefix them (`mcp_
 2b. **Reuse the design system.** Before building a button, card, input or nav from scratch, check `list_components` (this file) or `search_design_system` (team library) and place `create_instance`; set its `properties`.
 3. **Build top-down.** Create the container frame, then children with `parent_id`. Apply `set_auto_layout` on the container **before** adding many children when the layout is a stack or row.
 4. **Verify once per batch.** After a group of related writes, take **one** `get_screenshot` of the container. Do not screenshot after every call, and do not repeat a screenshot when nothing changed.
+4a. **Critique once per screen.** When a screen or section is built, run `critique_design` on its root, fix every primary finding with the tool it names, run it once more, then screenshot. See `references/critique.md`.
 5. **Fix, don't rebuild.** If the screenshot shows a problem, change the specific node (`move_node`, `resize_node`, `set_text`) rather than deleting and recreating.
 6. **Keep ids.** Every write returns `{ id, name, type }`. Reuse those ids for later calls; do not guess ids and do not re-find by name if you already have the id.
 7. **Stop when done.** Report what was created with node ids and one final screenshot path.
@@ -46,6 +47,7 @@ Tool names below are bare (`get_screenshot`). Your client may prefix them (`mcp_
 | Design-system components | `list_components(scope?)`, `create_instance(component_key \| component_id, x, y, properties?)`, `get_instance_properties`, `set_instance_properties`, `swap_instance`, `create_component`, `combine_as_variants`, `detach_instance` |
 | Variables / tokens (any plan) | `list_variable_collections`, `list_variables`, `create_variable_collection(name, modes)`, `create_variable`, `set_variable_value`, `bind_variable(node_id, field, variable_id)`, `get_variable_defs(node_id)` |
 | Icons and vectors | `search_icons(query)` → `insert_icon(name, x, y, size, color)` (Lucide, 2000+ icons); `create_from_svg(svg, x, y)` |
+| Review a built screen | `critique_design(node_id)` — ~40 deterministic rules (contrast, type scale, nested cards, spacing, overflow, buzzwords, tokens); each finding names the node and the fixing tool. `list_critique_rules` for the catalogue. Recipes: `references/critique.md` |
 | Anything else on canvas | `use_figma(code)` — see §4 and `references/snippets.md` |
 | Read a file without the plugin | `get_metadata` → `get_node(node_ids)`; `get_file` only with `depth` |
 | Export images | `get_screenshot` (plugin, saved to disk + inline) or `get_image` (REST, URLs) |

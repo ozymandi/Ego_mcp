@@ -120,6 +120,15 @@ const r7 = await exec(`
 check("screenshot after create", r7.ok && Array.isArray(r7.result.screenshots) && r7.result.screenshots.length === 1 && r7.result.screenshots[0].base64.length > 100,
   r7.ok ? `${r7.result.screenshots?.[0]?.width}x${r7.result.screenshots?.[0]?.height}` : r7.error);
 
+// 6. rollback on error: the frame created before the throw must be gone
+const r7b = await exec(`
+  const f = createAutoLayout('VERTICAL', { name: 'smoke-rollback', fill: '#fecaca' });
+  f.x = 600; f.y = 10; figma.currentPage.appendChild(f);
+  throw new Error('deliberate failure after creating a frame');
+`, { rollback_on_error: true });
+const gone = await exec(`return query(figma.currentPage, "[name=smoke-rollback]").length;`);
+check("rollback on error removes created nodes", !r7b.ok && /Rolled back 1 node/.test(r7b.error ?? "") && gone.ok && gone.result.result === 0, `${r7b.error} | left=${gone.result?.result}`);
+
 // cleanup
 const r8 = await exec(`
   for (const n of query(figma.currentPage, 'FRAME[name^=smoke-]')) n.remove();

@@ -326,14 +326,19 @@ server.registerTool(
     inputSchema: {
       code: z.string().min(1),
       screenshot: z.boolean().optional().describe("Also return a PNG of the top-level nodes the snippet created."),
+      rollback_on_error: z
+        .boolean()
+        .optional()
+        .default(true)
+        .describe("If the snippet throws, delete the nodes it created so a retry starts clean."),
       timeout_ms: z.number().int().min(100).max(120_000).optional().describe("Default 30000."),
     },
   },
-  async ({ code, screenshot, timeout_ms }) => {
+  async ({ code, screenshot, rollback_on_error, timeout_ms }) => {
     try {
       const data = (await bridge.send(
         "exec",
-        { code, track: true, screenshot: Boolean(screenshot) },
+        { code, track: true, screenshot: Boolean(screenshot), rollback_on_error: rollback_on_error !== false },
         timeout_ms,
       )) as { screenshots?: PluginScreenshot[] } & Record<string, unknown>;
       const { screenshots, ...rest } = data;

@@ -93,7 +93,9 @@
     "insert_icon",
     "search_icons",
     "critique_design",
-    "list_critique_rules"
+    "list_critique_rules",
+    "create_variables",
+    "bind_variables"
   ],
   "full": null
 }

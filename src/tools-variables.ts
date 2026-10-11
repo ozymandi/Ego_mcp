@@ -277,6 +277,128 @@ export function registerVariableTools(server: McpServer, bridge: PluginBridge): 
     },
   );
 
+  const variableSpec = z.object({
+    name: z.string().min(1),
+    type: variableType,
+    value: z.union([z.string(), z.number(), z.boolean()]).optional(),
+    values_by_mode: z.record(z.union([z.string(), z.number(), z.boolean()])).optional(),
+    scopes: z.array(z.string()).optional(),
+    description: z.string().optional(),
+  });
+
+  server.registerTool(
+    "create_variables",
+    {
+      title: "Create several variables at once",
+      description:
+        "Batch form of create_variable: one call, many variables in one collection. Continues past individual failures and reports each. Prefer this over repeated create_variable calls.",
+      inputSchema: {
+        collection_id: z.string().min(1),
+        variables: z.array(variableSpec).min(1).max(100),
+      },
+    },
+    async ({ collection_id, variables }) => {
+      try {
+        return ok(
+          await exec(
+            `
+            ${prelude}
+            const col = await figma.variables.getVariableCollectionByIdAsync(${J(collection_id)});
+            if (!col) throw new Error('Collection not found: ' + ${J(collection_id)});
+            const specs = ${J(variables)};
+            const defaultScopes = (t) => t === 'COLOR' ? ['FRAME_FILL', 'SHAPE_FILL', 'TEXT_FILL', 'STROKE_COLOR'] : t === 'FLOAT' ? ['GAP', 'WIDTH_HEIGHT', 'CORNER_RADIUS'] : ['ALL_SCOPES'];
+            const created = [], errors = [];
+            for (const s of specs) {
+              try {
+                const v = figma.variables.createVariable(s.name, col, s.type);
+                if (s.values_by_mode) {
+                  for (const [modeName, raw] of Object.entries(s.values_by_mode)) {
+                    const mode = col.modes.find(m => m.name === modeName || m.modeId === modeName);
+                    if (!mode) throw new Error('Mode not found: ' + modeName);
+                    v.setValueForMode(mode.modeId, await toValue(raw, s.type));
+                  }
+                } else if (s.value !== undefined) {
+                  const val = await toValue(s.value, s.type);
+                  for (const m of col.modes) v.setValueForMode(m.modeId, val);
+                }
+                v.scopes = s.scopes || defaultScopes(s.type);
+                if (s.description) v.description = s.description;
+                created.push({ id: v.id, name: v.name, type: v.resolvedType });
+              } catch (e) {
+                errors.push({ name: s.name, error: String(e && e.message || e) });
+              }
+            }
+            return { collection: col.name, created_count: created.length, created, errors: errors.length ? errors : undefined };
+          `,
+            120_000,
+          ),
+        );
+      } catch (err) {
+        return fail(err);
+      }
+    },
+  );
+
+  server.registerTool(
+    "bind_variables",
+    {
+      title: "Bind several variables at once",
+      description:
+        "Batch form of bind_variable: a list of { node_id, field, variable_id }. One call for a whole component or screen. Continues past individual failures and reports each.",
+      inputSchema: {
+        bindings: z
+          .array(z.object({ node_id: z.string().min(1), field: z.string().min(1), variable_id: z.string().min(1) }))
+          .min(1)
+          .max(200),
+      },
+    },
+    async ({ bindings }) => {
+      try {
+        return ok(
+          await exec(
+            `
+            const items = ${J(bindings)};
+            const vars = {};
+            const done = [], errors = [];
+            const bindPaint = (n, prop, v) => {
+              const paints = JSON.parse(JSON.stringify(n[prop] || []));
+              const base = paints[0] && paints[0].type === 'SOLID' ? paints[0] : { type: 'SOLID', color: { r: 0, g: 0, b: 0 } };
+              paints[0] = figma.variables.setBoundVariableForPaint(base, 'color', v);
+              n[prop] = paints;
+            };
+            for (const it of items) {
+              try {
+                const n = await figma.getNodeByIdAsync(it.node_id);
+                if (!n) throw new Error('Node not found');
+                let v = vars[it.variable_id];
+                if (!v) { v = await figma.variables.getVariableByIdAsync(it.variable_id); if (!v) throw new Error('Variable not found: ' + it.variable_id); vars[it.variable_id] = v; }
+                const f = it.field;
+                if (f === 'fill' || f === 'fills') bindPaint(n, 'fills', v);
+                else if (f === 'stroke' || f === 'strokes') bindPaint(n, 'strokes', v);
+                else if (f === 'cornerRadius') { for (const k of ['topLeftRadius', 'topRightRadius', 'bottomLeftRadius', 'bottomRightRadius']) n.setBoundVariable(k, v); }
+                else if (f === 'padding') { for (const k of ['paddingTop', 'paddingRight', 'paddingBottom', 'paddingLeft']) n.setBoundVariable(k, v); }
+                else if (f === 'strokeWeight') { for (const k of ['strokeTopWeight', 'strokeRightWeight', 'strokeBottomWeight', 'strokeLeftWeight']) n.setBoundVariable(k, v); }
+                else if (f === 'characters') {
+                  if (n.type !== 'TEXT') throw new Error('characters needs a TEXT node');
+                  if (n.fontName === figma.mixed) { for (const s of n.getStyledTextSegments(['fontName'])) await figma.loadFontAsync(s.fontName); } else await figma.loadFontAsync(n.fontName);
+                  n.setBoundVariable('characters', v);
+                } else n.setBoundVariable(f, v);
+                done.push(it.node_id + ' ' + f + ' -> ' + v.name);
+              } catch (e) {
+                errors.push({ node_id: it.node_id, field: it.field, error: String(e && e.message || e) });
+              }
+            }
+            return { bound_count: done.length, bound: done, errors: errors.length ? errors : undefined };
+          `,
+            120_000,
+          ),
+        );
+      } catch (err) {
+        return fail(err);
+      }
+    },
+  );
+
   server.registerTool(
     "get_variable_defs",
     {

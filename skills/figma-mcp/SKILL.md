@@ -45,7 +45,7 @@ Tool names below are bare (`get_screenshot`). Your client may prefix them (`mcp_
 | Understand a design before coding or editing it | `get_node_spec(node_id?)` — one line per layer: layout, sizing, fills with `{variable}` names, typography, instances + props |
 | Pages | `list_pages`, `set_current_page(page_id \| name)`, `zoom_to(node_ids)` |
 | Design-system components | `list_components(scope?)`, `create_instance(component_key \| component_id, x, y, properties?)`, `get_instance_properties`, `set_instance_properties`, `swap_instance`, `create_component`, `combine_as_variants`, `detach_instance` |
-| Variables / tokens (any plan) | `list_variable_collections`, `list_variables`, `create_variable_collection(name, modes)`, `create_variable`, `set_variable_value`, `bind_variable(node_id, field, variable_id)`, `get_variable_defs(node_id)` |
+| Variables / tokens (any plan) | `list_variable_collections`, `list_variables`, `create_variable_collection(name, modes)`, `create_variables(collection_id, [...])` (many at once; prefer over repeated `create_variable`), `set_variable_value`, `bind_variables([{node_id, field, variable_id}, …])` (many at once), `get_variable_defs(node_id)` |
 | Icons and vectors | `search_icons(query)` → `insert_icon(name, x, y, size, color)` (Lucide, 2000+ icons); `create_from_svg(svg, x, y)` |
 | Review a built screen | `critique_design(node_id)` — ~40 deterministic rules (contrast, type scale, nested cards, spacing, overflow, buzzwords, tokens); each finding names the node and the fixing tool. `list_critique_rules` for the catalogue. Recipes: `references/critique.md` |
 | Anything else on canvas | `use_figma(code)` — see §4 and `references/snippets.md` |
@@ -61,7 +61,7 @@ Full parameter list: `references/tools.md`.
 
 ## 4. Rules for `use_figma`
 
-The snippet is the body of an async function. `figma`, `selection`, `currentPage` are in scope. Only the value you `return` comes back; `console.log` is lost. The response is `{ result, created_ids?, changed_ids?, deleted_ids? }` — ids are collected for you (best effort), and `screenshot: true` adds a PNG of what you created.
+The snippet is the body of an async function. `figma`, `selection`, `currentPage` are in scope. Only the value you `return` comes back; `console.log` is lost. The response is `{ result, created_ids?, changed_ids?, deleted_ids? }` — ids are collected for you (best effort), and `screenshot: true` adds a PNG of what you created. If the snippet throws, the nodes it created are deleted again (the error says how many), so a retry starts from a clean canvas.
 
 **Helpers in scope** (plain functions, use them instead of the verbose API):
 

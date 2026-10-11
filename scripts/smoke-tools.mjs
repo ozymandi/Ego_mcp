@@ -105,6 +105,8 @@ const rn = await call("rename_node", { node_id: clone.data.id, name: "State=Hove
 check("rename clone", rn.ok, rn.text);
 const set = await call("combine_as_variants", { node_ids: [cid, clone.data.id], name: "smoke-set" });
 check("combine_as_variants", set.ok && set.data.variants?.length === 2 && set.data.definitions?.State?.options?.length === 2, set.text);
+const setSpec = await call("get_node_spec", { node_id: set.data.id, max_depth: 1 });
+check("combine_as_variants: set has auto-layout, variants side by side", setSpec.ok && /layout=HORIZONTAL/.test(setSpec.text) && set.data.width > 200, setSpec.text.split(String.fromCharCode(10))[1]);
 const sip = await call("set_instance_properties", { node_id: iid, properties: { State: "Hover" } });
 check("set_instance_properties variant", sip.ok && sip.data.properties?.State?.value === "Hover", sip.text);
 const sw = await call("swap_instance", { node_id: iid, component_id: cid });
@@ -129,7 +131,20 @@ const lv = await call("list_variables", { collection_id: colId });
 check("list_variables", lv.ok && lv.data?.count === 2, lv.text);
 const lcol = await call("list_variable_collections");
 check("list_variable_collections", lcol.ok && (lcol.data ?? []).some?.((c) => c.id === colId && c.variable_count === 2), lcol.text);
+const batch = await call("create_variables", { collection_id: colId, variables: [
+  { name: "smoke/b1", type: "COLOR", value: "#ff0000" },
+  { name: "smoke/b2", type: "FLOAT", value: 8 },
+  { name: "smoke/bad", type: "COLOR", value: "not-a-color" },
+] });
+check("create_variables batch (2 ok, 1 error)", batch.ok && batch.data.created_count === 2 && batch.data.errors?.length === 1, batch.text);
 const rect = await call("create_rectangle", { x: 400, y: 200, width: 50, height: 50, fill: "#000000", name: "smoke-rect" });
+const rect2 = await call("create_rectangle", { x: 470, y: 200, width: 50, height: 50, fill: "#000000", name: "smoke-rect2" });
+const bb = await call("bind_variables", { bindings: [
+  { node_id: rect2.data.id, field: "fill", variable_id: vid },
+  { node_id: rect2.data.id, field: "cornerRadius", variable_id: vf.data.id },
+  { node_id: "999:999", field: "fill", variable_id: vid },
+] });
+check("bind_variables batch (2 ok, 1 error)", bb.ok && bb.data.bound_count === 2 && bb.data.errors?.length === 1, bb.text);
 const bv = await call("bind_variable", { node_id: rect.data.id, field: "fill", variable_id: vid });
 check("bind_variable fill", bv.ok && bv.data.bound?.includes("fills[0].color"), bv.text);
 const bg = await call("bind_variable", { node_id: rect.data.id, field: "cornerRadius", variable_id: vf.data.id });

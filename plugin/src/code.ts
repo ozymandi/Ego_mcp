@@ -34,6 +34,8 @@ interface ExecPayload {
   screenshot?: boolean;
   // Soft limit on nodes created per call; exceeding it adds a warning.
   max_created?: number;
+  // When the snippet throws, remove the nodes it created (tracked) first.
+  rollback_on_error?: boolean;
 }
 
 import { BUILD } from "./build-info";
@@ -215,7 +217,7 @@ const DIAGNOSES: { re: RegExp; hint: string; safe_to_retry: boolean }[] = [
   },
   {
     re: /not a function/i,
-    hint: "That method does not exist. Common correct names: figma.createComponentFromNode(node), component.createInstance(), figma.createFrame()/createText()/createRectangle(), figma.group(nodes, parent), figma.combineAsVariants(components, parent), node.findAllWithCriteria({types:['TEXT']}), instance.setProperties({...}), await figma.importComponentByKeyAsync(key).",
+    hint: "That method does not exist. Common correct names: figma.createComponentFromNode(node), component.createInstance(), figma.createFrame()/createText()/createRectangle(), figma.group(nodes, parent), figma.combineAsVariants(components, parent), node.findAllWithCriteria({types:['TEXT']}), instance.setProperties({...}), await figma.importComponentByKeyAsync(key). Variables: figma.variables.createVariableCollection(name), figma.variables.createVariable(name, collection, 'COLOR'|'FLOAT'|'STRING'|'BOOLEAN'), variable.setValueForMode(modeId, value), figma.variables.setBoundVariableForPaint(paint, 'color', variable), node.setBoundVariable(field, variable). Text styles: figma.createTextStyle(), await node.setTextStyleIdAsync(id). Or use the structured tools (create_variables, bind_variables).",
     safe_to_retry: true,
   },
   {
@@ -561,9 +563,32 @@ async function execCode(payload: ExecPayload) {
       "selection",
       "currentPage",
       "__helpers",
-      `return (async () => { ${PRELUDE}\n${payload.code}\n })();`,
+      // The snippet gets its own block so redeclaring a helper name
+      // (const hex = …) shadows ours instead of throwing.
+      `return (async () => { ${PRELUDE}\n{\n${payload.code}\n}\n })();`,
     );
     result = await factory(api, figma.currentPage.selection, figma.currentPage, HELPERS);
+  } catch (err) {
+    if (track && payload.rollback_on_error !== false) {
+      await settleChanges(Date.now());
+      const rolled: string[] = [];
+      for (const id of created) {
+        try {
+          const n = await figma.getNodeByIdAsync(id);
+          if (n && !n.removed) {
+            n.remove();
+            rolled.push(id);
+          }
+        } catch {
+          // already gone or not removable
+        }
+      }
+      if (rolled.length) {
+        const msg = err instanceof Error ? err.message : String(err);
+        throw new Error(`${msg}\nRolled back ${rolled.length} node(s) created by this call (${rolled.slice(0, 8).join(", ")}${rolled.length > 8 ? ", …" : ""}); the canvas is as it was before the call.`);
+      }
+    }
+    throw err;
   } finally {
     if (track) await settleChanges(Date.now());
   }

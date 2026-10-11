@@ -190,6 +190,10 @@ createAutoLayout('VERTICAL');
 // screenshots: pass screenshot: true to use_figma, or call the get_screenshot tool
 ```
 
+## One call, many items
+
+Clients such as Hermes allow one MCP tool call per turn. Thirteen variables as thirteen `create_variable` calls is thirteen turns; use `create_variables` with the list, and `bind_variables` for a component's bindings. Do not fall back to raw `figma.variables` JavaScript for this — the argument order (`createVariable(name, collection, type)`) is the most common failure in logs.
+
 ## Things that do not exist in this sandbox
 
 - `figma.notify`, `figma.closePlugin`, `figma.ui.*`, `figma.showUI` — not for snippets.

@@ -60,7 +60,7 @@ Measured accuracy per model: [docs/eval-2026-10-11.md](docs/eval-2026-10-11.md).
 | Tool | Purpose |
 |------|---------|
 | `bridge_status` | Whether the companion plugin is connected |
-| `use_figma` | Execute a JS snippet inside the plugin; `figma`, `selection`, `currentPage` plus helpers `query`, `set`, `createAutoLayout`, `loadFontsFor`, `hex`, `solid` in scope. Returns `created_ids`/`changed_ids`; `screenshot: true` adds a PNG; errors carry a hint and `safe_to_retry` |
+| `use_figma` | Execute a JS snippet inside the plugin; `figma`, `selection`, `currentPage` plus helpers `query`, `set`, `createAutoLayout`, `loadFontsFor`, `hex`, `solid` in scope (a snippet may redeclare those names). Returns `created_ids`/`changed_ids`; `screenshot: true` adds a PNG; errors carry a hint and `safe_to_retry`; on error the nodes the snippet created are removed (`rollback_on_error`, default on) |
 | `get_selection` | Summary of selected nodes |
 | `get_current_page` | Current page + selection |
 | `get_screenshot` | Saves PNG/JPG/SVG to `./screenshots/` and embeds the image; longest side capped by `max_px` (1024); unchanged pixels return a note instead of a second image |
@@ -129,9 +129,9 @@ All through the plugin, so variables work on every Figma plan.
 | `list_components` | Components / component sets on the page (or whole file) with keys and variants |
 | `create_instance` | Place an instance by library `component_key` or local `component_id`, optionally with `properties` |
 | `get_instance_properties`, `set_instance_properties`, `swap_instance`, `detach_instance` | Work with instances |
-| `create_component`, `combine_as_variants` | Build components and variant sets |
-| `list_variable_collections`, `list_variables`, `create_variable_collection`, `create_variable`, `set_variable_value` | Local variables (colors as hex, aliases as `VariableID:...`) |
-| `bind_variable` | Bind a variable to fill, stroke, width/height, padding, cornerRadius, itemSpacing, characters, opacity, … |
+| `create_component`, `combine_as_variants` | Build components and variant sets; the set gets auto-layout (variants in a row) and is moved clear of overlapping siblings |
+| `list_variable_collections`, `list_variables`, `create_variable_collection`, `create_variable`, `create_variables`, `set_variable_value` | Local variables (colors as hex, aliases as `VariableID:...`); `create_variables` makes many in one call |
+| `bind_variable`, `bind_variables` | Bind a variable to fill, stroke, width/height, padding, cornerRadius, strokeWeight, itemSpacing, characters, opacity, …; the plural form takes a list |
 | `get_variable_defs` | Every variable and style bound in a subtree, with resolved values |
 | `search_icons`, `insert_icon` | Lucide icon set (2000+) placed as vectors |
 | `create_from_svg` | Import any SVG string |

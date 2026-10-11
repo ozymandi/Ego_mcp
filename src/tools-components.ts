@@ -267,13 +267,20 @@ export function registerComponentTools(server: McpServer, bridge: PluginBridge):
     {
       title: "Combine components into a variant set",
       description:
-        "Combine COMPONENT nodes into one COMPONENT_SET. Name each component 'Prop=Value, Prop2=Value' first so variants get properties.",
+        "Combine COMPONENT nodes into one COMPONENT_SET. Name each component 'Prop=Value, Prop2=Value' first so variants get properties. The set gets auto-layout (variants in a row) and is moved clear of overlapping siblings.",
       inputSchema: {
         node_ids: z.array(z.string().min(1)).min(2),
         name: z.string().optional(),
+        layout: z
+          .enum(["HORIZONTAL", "VERTICAL", "NONE"])
+          .optional()
+          .default("HORIZONTAL")
+          .describe("Auto-layout applied to the set so variants line up instead of stacking. NONE keeps positions."),
+        gap: z.number().min(0).optional().default(40),
+        padding: z.number().min(0).optional().default(40),
       },
     },
-    async ({ node_ids, name }) => {
+    async ({ node_ids, name, layout, gap, padding }) => {
       try {
         return ok(
           await exec(`
@@ -287,9 +294,30 @@ export function registerComponentTools(server: McpServer, bridge: PluginBridge):
             const parent = comps[0].parent || figma.currentPage;
             const vset = figma.combineAsVariants(comps, parent);
             ${name ? `vset.name = ${J(name)};` : ""}
+            const layout = ${J(layout)};
+            if (layout !== 'NONE') {
+              vset.layoutMode = layout;
+              vset.primaryAxisSizingMode = 'AUTO';
+              vset.counterAxisSizingMode = 'AUTO';
+              vset.itemSpacing = ${gap};
+              vset.paddingTop = vset.paddingBottom = vset.paddingLeft = vset.paddingRight = ${padding};
+            }
+            // Keep the set clear of its siblings: if it overlaps anything at the
+            // same level, move it to the right of everything.
+            let moved = false;
+            if ('children' in parent) {
+              const sibs = parent.children.filter(n => n !== vset);
+              const hit = (a, b) => a.x < b.x + b.width && a.x + a.width > b.x && a.y < b.y + b.height && a.y + a.height > b.y;
+              if (sibs.some(s => hit(vset, s))) {
+                vset.x = Math.max(...sibs.map(s => s.x + s.width)) + 100;
+                vset.y = Math.min(...sibs.map(s => s.y));
+                moved = true;
+              }
+            }
             ${propSummary}
             let defs = {}; try { defs = summarizeDefs(vset.componentPropertyDefinitions); } catch (e) {}
-            return { id: vset.id, name: vset.name, key: vset.key, variants: vset.children.map(c => ({ id: c.id, name: c.name })), definitions: defs };
+            return { id: vset.id, name: vset.name, key: vset.key, x: vset.x, y: vset.y, width: vset.width, height: vset.height, moved_clear: moved || undefined,
+                     variants: vset.children.map(c => ({ id: c.id, name: c.name })), definitions: defs };
           `),
         );
       } catch (err) {

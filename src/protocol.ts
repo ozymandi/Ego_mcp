@@ -38,6 +38,8 @@ export interface ExecPayload {
   screenshot?: boolean;
   // Soft limit on nodes created per call; exceeding it adds a warning.
   max_created?: number;
+  // When the snippet throws, remove the nodes it created (tracked) first.
+  rollback_on_error?: boolean;
 }
 
 export interface ScreenshotPayload {

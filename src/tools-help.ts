@@ -35,15 +35,17 @@ Without an argument you get this index.
 
 const OVERVIEW = `# Overview
 
-This MCP server connects a local language model (Gemma 4 running in LM Studio)
-to Figma. It exposes 60+ tools spread across these groups:
+This MCP server connects a language model (local via Hermes Agent / LM Studio,
+or hosted via Claude Code / Codex) to Figma. It exposes 88 tools in these groups:
 
-1. **REST tools** — read public Figma data through the official API. Needs a
-   personal access token; works without the plugin.
-2. **Plugin bridge** — connect to the live canvas of your Figma desktop app.
-3. **Canvas helpers** — typed wrappers that create and edit nodes without
-   writing JavaScript.
-4. **Help** — this tool.
+1. **REST tools** — read files through the official API. Needs a personal
+   access token; works without the plugin.
+2. **Canvas helpers** — create and edit nodes on the open page without JavaScript.
+3. **Design spec, pages, components, variables, icons** — \`get_node_spec\`,
+   \`create_instance\`, \`bind_variable\`, \`insert_icon\` and friends, all through the plugin.
+4. **use_figma** — run Plugin API JavaScript with helpers and error hints.
+5. **Diagrams, FigJam, design-system search, Code Connect, filesystem workspaces.**
+6. **Help** — this tool (clients with skills read \`skills/figma-mcp/SKILL.md\` instead).
 
 ## Architecture
 
@@ -51,20 +53,20 @@ to Figma. It exposes 60+ tools spread across these groups:
 ws://localhost:7575
        │
  ┌─────┴──────┐
- │   daemon   │   long-lived, started with: npm run bridge
+ │   daemon   │   started automatically by the first MCP server; log: daemon.log
  └─┬────────┬─┘
    │        │
- plugin    MCP server (spawned by LM Studio per chat)
+ plugin    MCP server(s) (spawned by the client per session)
 \`\`\`
 
-The daemon is the only thing that owns the WebSocket port. The plugin and
-the MCP server are both clients of the daemon. Decoupling lifecycles is
-what keeps the Figma plugin connection stable across LM Studio restarts.
+The daemon owns the WebSocket port and outlives the MCP servers, so clients
+can restart freely and the plugin stays connected.
 
 ## Quick check
 
-Call \`bridge_status\`. You want \`mcp_to_daemon: "connected"\` and the Figma
-plugin window showing a green dot.
+Call \`bridge_status\` once. You want \`daemon: "connected"\`, \`plugin: "connected"\`,
+plus the open file name, page and plugin build. Do not call it before every
+action; canvas tools report a clear error when something is missing.
 `;
 
 const CANVAS = `# Canvas helpers
@@ -95,6 +97,25 @@ you pass parameters.
 - \`find_nodes(name_pattern?, type?, limit?)\` — regex on names, optional node type
 - \`group_nodes(node_ids[], name?)\`
 - \`set_auto_layout(node_id, direction, item_spacing?, padding?)\` — direction is \`HORIZONTAL\`, \`VERTICAL\`, or \`NONE\`
+
+## Spec & pages
+- \`get_node_spec(node_id?, max_depth?)\` — one line per layer: size, layout, fills with {variable} names, text, instances
+- \`list_pages()\`, \`set_current_page(page_id | name)\`, \`zoom_to(node_ids)\`
+
+## Components & instances
+- \`list_components(scope?, name_pattern?)\`, \`create_instance(component_key | component_id, x, y, properties?)\`
+- \`get_instance_properties\`, \`set_instance_properties\`, \`swap_instance\`, \`detach_instance\`
+- \`create_component(node_id)\`, \`combine_as_variants(node_ids)\`
+
+## Variables (any plan)
+- \`list_variable_collections\`, \`list_variables\`, \`create_variable_collection(name, modes)\`
+- \`create_variable(collection_id, name, type, value | values_by_mode)\`, \`set_variable_value\`
+- \`bind_variable(node_id, field, variable_id)\` — fill, stroke, padding, cornerRadius, itemSpacing, width, …
+- \`get_variable_defs(node_id)\` — everything bound in a subtree
+
+## Icons & SVG
+- \`search_icons(query)\` → \`insert_icon(name, x, y, size?, color?)\` (Lucide, 2000+ icons)
+- \`create_from_svg(svg, x, y)\`
 
 ## Conventions
 
@@ -133,11 +154,13 @@ in \`.env\` (\`FIGMA_TOKEN\`).
 - \`post_comment(file_key, message, comment_id?)\` — add or reply
 - \`get_image(file_key, node_ids[], format?, scale?)\` — Figma-rendered PNG/JPG/SVG/PDF URLs
 
-## Variables (Enterprise plan required)
+## Variables (REST, Enterprise plan required)
 - \`get_local_variables(file_key)\` — local variables and collections
 - \`get_published_variables(file_key)\` — variables this file publishes as a library
 
-Without Enterprise these return 403; the error message says so.
+Without Enterprise these return 403. On any plan use the plugin-side tools
+instead: \`list_variables\`, \`create_variable\`, \`bind_variable\`, \`get_variable_defs\`
+(see help("canvas")).
 
 ## Lookup by global key
 - \`get_component_by_key(key)\`
@@ -212,6 +235,16 @@ Copy these into the chat — Gemma will pick the right tool.
 
 > Comment "Looks good — shipping it" on file XXXX.
 
+## Components, variables, icons
+> Place an instance of the library button with key XXXX at 100,100 with State=Hover.
+
+> Create a Light/Dark variable collection "Theme" with color/bg = #ffffff / #111111,
+> then bind the selected frame's fill to it.
+
+> Add a row with the icons heart, message-circle, repeat and send, 24px, #333333.
+
+> Give me the spec of the selected frame so I can implement it in React.
+
 ## Raw JS escape hatch
 > Use \`use_figma\` to clone the current selection and shift the copy
 > 200px to the right.
@@ -282,14 +315,25 @@ plugin slot. Close one — the daemon only accepts one plugin connection.
 
 ## Screenshots show as base64 text instead of an image
 
-LM Studio doesn't render MCP image content blocks (yet). The PNG is still
-saved to \`./screenshots/\` — open it from there. The model also receives
+Older LM Studio builds don't render MCP image content blocks. The PNG is
+still saved to \`./screenshots/\` — open it from there. The model also receives
 the file path in the tool response.
+
+## The model answers in prose instead of calling a tool
+
+Thinking models (Qwen3.8, Gemma 4) reason before the tool call. If the
+output-token limit is low they stop mid-reasoning and look like they
+"decided not to" call anything. Raise the limit (8000 is safe).
+
+## A canvas tool returns an old-looking result or lacks a field
+
+The plugin in Figma is an older build. Re-run it (Plugins → Development →
+Gemma 4 MCP Bridge); \`bridge_status\` shows the build stamp of the running plugin.
 
 ## Where are the logs?
 
-- **Daemon**: the terminal running \`npm run bridge\`.
-- **MCP server**: LM Studio → Developer panel → output for \`mcp/gemma-figma\`.
+- **Daemon**: \`daemon.log\` in the project root (or the terminal if you started it by hand).
+- **MCP server**: the client's MCP log (LM Studio → Developer panel; Hermes / Claude Code tool logs).
 - **Plugin**: the gray log area at the bottom of the plugin window.
 `;
 

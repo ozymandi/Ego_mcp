@@ -1,10 +1,28 @@
 # gemma-figma-mcp
 
-MCP server that connects **Gemma 4** running in **LM Studio** to **Figma**.
+MCP server for **Figma**, built so that **local models** can use it well:
+compact tool schemas and responses, an agent skill, and an eval harness that
+measures how a model actually does. Works with any MCP client. Tested, in
+priority order: **Hermes Agent** with Qwen3.8 27B / Gemma 4 31B via LM Studio,
+**Claude Code** and **Codex** with hosted models, and LM Studio's own chat.
 
-Works with any MCP client. Tested targets, in priority order: **Hermes Agent**
-with local models (Qwen3.8 27B, Gemma 4) via LM Studio, **Claude Code** and
-**Codex** with hosted models, and LM Studio's own chat.
+## Quick start
+
+```powershell
+npm install && cd plugin && npm install && cd ..
+npm run build                     # server (dist/) + Figma plugin (plugin/dist/)
+copy .env.example .env            # paste a Figma personal access token (REST tools only)
+```
+
+1. Figma desktop → Plugins → Development → Import plugin from manifest… → `plugin/manifest.json`.
+2. Run the plugin (Plugins → Development → Gemma 4 MCP Bridge). Green dot = connected.
+3. Register `node <repo>/dist/server.js` in your client and install the skill
+   from `skills/figma-mcp/` — per-client steps in [docs/pipelines/](docs/pipelines/README.md).
+
+The bridge daemon between plugin and server starts itself with the first MCP
+server; nothing else to run. 88 tools; local models should use a profile
+(`core` 27 tools, `design` 62) — see [Profiles](docs/pipelines/README.md#profiles).
+Measured accuracy per model: [docs/eval-2026-10-11.md](docs/eval-2026-10-11.md).
 
 - Phase 1 — REST read tools + posting comments. ✅
 - Phase 2 — Variables and library REST tools. ✅
@@ -15,6 +33,9 @@ with local models (Qwen3.8 27B, Gemma 4) via LM Studio, **Claude Code** and
 - Phase 7 — Sandboxed filesystem workspaces + image import. ✅
 - Phase 8 — Design spec, pages, components/instances, variables, icons (plugin). ✅
 - Agent skill (`skills/figma-mcp/`) for Hermes Agent / Claude Code / Codex. ✅
+- Token diet for local models (outline reads, response cap, compact schemas), `use_figma` helpers + error hints. ✅
+- Eval harness: first-call accuracy and multi-step live tasks (`npm run eval`, `npm run eval:live`). ✅
+- Bridge daemon autostart from the MCP server. ✅
 
 ## Tools
 
@@ -43,8 +64,8 @@ with local models (Qwen3.8 27B, Gemma 4) via LM Studio, **Claude Code** and
 ### Variables & libraries (phase 2)
 | Tool | Purpose |
 |------|---------|
-| `get_local_variables` | Variables & collections in a file (Enterprise) |
-| `get_published_variables` | Variables a file publishes as a library (Enterprise) |
+| `get_local_variables` | Variables & collections in a file (REST, Enterprise plan; on other plans use the plugin-side `list_variables` below) |
+| `get_published_variables` | Variables a file publishes as a library (REST, Enterprise) |
 | `get_file_component_sets` | Component sets (variants) in a file |
 | `get_component_by_key` | Single component by global key |
 | `get_component_set_by_key` | Single component set by global key |
@@ -306,7 +327,10 @@ The plugin connects to the bridge daemon over WebSocket.
 4. Run the plugin: **Plugins → Development → Gemma 4 MCP Bridge**.
 5. The plugin window shows a green dot when it's connected to the daemon at `ws://localhost:7575`.
 
-Once connected, the `use_figma`, `get_selection`, `get_current_page`, and `get_screenshot` tools start working.
+Once connected, every canvas tool works (`bridge_status` shows the open file,
+page and the plugin's build stamp). After `npm run build` changes the plugin,
+re-run it in Figma to load the new bundle; the daemon and the server do not
+need a restart for that.
 
 #### `use_figma` example
 
@@ -321,21 +345,32 @@ figma.currentPage.appendChild(rect);
 return { created: rect.id };
 ```
 
-### 7. Sanity check (without LM Studio)
+### 7. Check it without a model
 
-In one terminal:
-
-```powershell
-npm run bridge
-```
-
-In another:
+With the plugin running in Figma (on a scratch file: both scripts create and
+delete test nodes):
 
 ```powershell
-npm run dev
+npm run smoke:plugin     # 11 checks of use_figma helpers, id tracking, error hints
+npm run smoke:tools      # 34 checks of the structured tools through the real MCP server
+npm run measure:tools    # size of the tools/list payload per tool
 ```
 
-The MCP server prints `[bridge-client] connected to ws://localhost:7575` and `[gemma-figma-mcp] ready on stdio`. Press Ctrl+C in either terminal to stop. (Stdio servers are usually exercised by an MCP client, not directly.)
+`npm run dev` runs the server from `src/` with tsx; it autostarts the daemon
+like the built server does.
+
+## Scripts
+
+| Script | Does |
+|--------|------|
+| `npm run build` | compile server to `dist/` and bundle the plugin to `plugin/dist/` (stamps the build) |
+| `npm run typecheck` | TypeScript check for server and plugin |
+| `npm run bridge` | start the daemon by hand (normally automatic) |
+| `npm run docs:tools` | regenerate `skills/figma-mcp/references/tools.md` from the registered tools |
+| `npm run measure:tools` | bytes/tokens of the tool list a client receives |
+| `npm run smoke:plugin`, `npm run smoke:tools` | live checks against the open Figma file |
+| `npm run eval -- --profile core` | first-tool-call accuracy against an OpenAI-compatible model server |
+| `npm run eval:live -- --profile design --skill` | multi-step tasks on the live canvas |
 
 ## Evaluating local models
 
@@ -378,20 +413,20 @@ is 10–12k prompt tokens. Results and findings so far: `docs/eval-2026-10-11.md
               ws://localhost:7575
                        │
                 ┌──────┴───────┐
-                │ bridge daemon│  ← `npm run bridge`
+                │ bridge daemon│  ← started by the first MCP server (or start-bridge.bat / task)
                 └──┬─────────┬─┘
-       role=plugin │         │ role=mcp
+       role=plugin │         │ role=mcp (any number)
                    ▼         ▼
           ┌────────────┐  ┌──────────────┐
-          │ Figma      │  │ MCP server   │  ← spawned by LM Studio
-          │ plugin     │  │ (stdio)      │
+          │ Figma      │  │ MCP server   │  ← spawned by the client: Hermes, Claude Code,
+          │ plugin     │  │ (stdio)      │     Codex, LM Studio …
           └────────────┘  └──────────────┘
 ```
 
-The daemon is the long-lived owner of the WebSocket port. Decoupling it
-from the MCP server's lifecycle is important because LM Studio may stop
-and restart MCP servers freely — without a separate daemon, the plugin
-would see constant reconnect cycles.
+The daemon is the long-lived owner of the WebSocket port. Clients stop and
+restart MCP servers freely; because the daemon outlives them, the plugin
+stays connected and several clients can share one plugin. The daemon is a
+detached process that the server starts when the port is closed.
 
 ## Notes
 
@@ -399,4 +434,6 @@ would see constant reconnect cycles.
 - Prefer `get_metadata` first, then `get_node` for specific subtrees, rather than `get_file` on every call.
 - `get_image` (REST) returns S3 URLs that expire ~30 days after generation. `get_screenshot` (plugin) returns inline base64.
 - The daemon allows only one connected plugin. If you open the plugin in two Figma windows, only the newest connection is kept.
-- Variables and Libraries (phase 2) require Enterprise-tier plan for full coverage.
+- The Variables REST endpoints (`get_local_variables`, `get_published_variables`) need an Enterprise plan; the plugin-side variable tools (`list_variables`, `create_variable`, `bind_variable`, `get_variable_defs`, …) work on every plan.
+- `use_figma` snippets get helpers (`query`, `set`, `createAutoLayout`, `loadFontsFor`, `hex`, `solid`), automatic `created_ids`/`changed_ids`, and error hints with `safe_to_retry`; the rules are in `skills/figma-mcp/SKILL.md`.
+- Thinking models (Qwen3.8, Gemma 4) reason before emitting a tool call; give them a high output-token limit or they return "no tool call".

@@ -1,8 +1,8 @@
 # Pipelines
 
 One MCP server, several ways to drive it. Pick the page that matches your
-client. All of them need the same three things running on the machine with
-Figma desktop:
+client. All of them need the same two things on the machine with Figma
+desktop:
 
 1. the Figma plugin (Plugins → Development → Gemma 4 MCP Bridge, green dot),
 2. `.env` with `FIGMA_TOKEN` (REST tools only; canvas tools work without it).

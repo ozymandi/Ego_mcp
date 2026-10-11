@@ -55,6 +55,8 @@ Reach feature parity with the official Figma Dev Mode MCP that Claude Code uses,
 
 **2026-10-11, daemon autostart:** `src/daemon-launcher.ts` — the MCP server probes the bridge port and, if closed, spawns `dist/daemon.js` detached (log `daemon.log`); `bridge_status` retries it when unreachable. `FIGMA_BRIDGE_AUTOSTART=0` disables; only for localhost URLs. Verified on a spare port: daemon survives the server's exit. README/pipelines/skill/help updated; start-bridge.bat and the Scheduled Task are now optional.
 
+**2026-10-11, docs refresh:** README (intro, Quick start, plugin section, 'check without a model', Scripts table, architecture, notes), package.json description, help topics (overview with 88 tools and autostart, canvas topic lists phase-8 tools, REST variables point to plugin tools, examples, troubleshooting: thinking models, stale plugin build, logs).
+
 **Next step (designer's call):** a longer live task (screen from a design system), smaller models (Gemma 4 26B-A4B / 12B), `FIGMA_MCP_PROFILE` env filter for clients without tool filtering (LM Studio chat), remaining P3 items only if asked.
 
 **Open questions:** which local models to target first (Gemma 4 26B-A4B / 31B, Qwen3.8 27B). Models have vision — screenshots stay inline (decided 2026-10-11). Client priority (2026-10-11): 1) **Hermes Agent** over LM Studio (local models), 2) Claude Code + Codex (big LLMs), 3) LM Studio chat (uncertain). Hermes — it accumulates skills, so the repo should ship a seed SKILL.md (proposal P2.0) and README `tools.include` profiles instead of in-server profiles.

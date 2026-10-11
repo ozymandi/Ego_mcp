@@ -1,7 +1,7 @@
 {
   "name": "gemma-figma-mcp",
   "version": "0.1.0",
-  "description": "MCP server bridging Gemma 4 (LM Studio) and Figma",
+  "description": "MCP server for Figma built for local models (Hermes Agent / LM Studio) and hosted ones (Claude Code, Codex)",
   "private": true,
   "type": "module",
   "bin": {

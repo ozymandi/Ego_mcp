@@ -230,6 +230,10 @@ Figma plugin will both connect to it.
 
 ### 4. Agent skill (recommended for every client)
 
+Per-client walkthroughs with config, profile advice, example sessions and
+troubleshooting live in [docs/pipelines/](docs/pipelines/README.md): Hermes
+Agent + LM Studio, Claude Code, Codex, LM Studio chat, your own agent loop.
+
 `skills/figma-mcp/SKILL.md` teaches the model how to use this server: when to
 call which tool, the `use_figma` rules, error recovery, and worked snippets.
 It follows the common `SKILL.md` format (YAML frontmatter with `name` +

@@ -18,6 +18,9 @@ copy .env.example .env            # paste a Figma personal access token (REST to
 2. Run the plugin (Plugins → Development → Gemma 4 MCP Bridge). Green dot = connected.
 3. Register `node <repo>/dist/server.js` in your client and install the skill
    from `skills/figma-mcp/` — per-client steps in [docs/pipelines/](docs/pipelines/README.md).
+4. What to ask for, step by step: [docs/workflows/](docs/workflows/README.md)
+   (create from scratch with variants and critique, edit a region with a
+   proposal first, atomize a finished design for hand-off).
 
 The bridge daemon between plugin and server starts itself with the first MCP
 server; nothing else to run. 88 tools; local models should use a profile

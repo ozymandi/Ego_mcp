@@ -20,6 +20,8 @@ task are optional extras.
 | [LM Studio chat](lmstudio-chat.md) | local | all 88 tools (~12k tokens) | none | quick manual checks |
 | [Your own agent loop](custom-agent.md) | any OpenAI-compatible | whatever you pass | you decide | automation, evals |
 
+End-to-end scenarios (brief → variants → critique, edit with a proposal, atomize for hand-off): [../workflows/](../workflows/README.md).
+
 Cross-cutting: [Design review](design-review.md) — the prototype → `critique_design` → fix → hand-off loop, with examples for Hermes and LM Studio chat and how Impeccable fits at the code stage.
 
 ## Profiles

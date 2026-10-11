@@ -65,7 +65,9 @@ Reach feature parity with the official Figma Dev Mode MCP that Claude Code uses,
 
 **2026-10-11, critique-fix live:** PASS for Gemma (design+skill, 4 turns) and Qwen (design+skill 7 turns; core 7 turns). Both follow the report's node ids and re-run the critique to confirm 0 primary. LM Studio note: after a restart its `.lmstudio/.internal/temp` folder was missing and model loads failed with ENOENT until it was recreated.
 
-**Next step (designer's call):** longer live task (screen from a design system), smaller models (Gemma 4 26B-A4B / 12B), `FIGMA_MCP_PROFILE` for LM Studio chat, remaining P3 items only if asked.
+**2026-10-11, workflows:** `docs/workflows/` — 01 create from scratch (brief, tokens, components, variants, critique, pick), 02 edit a region (analyse, propose, apply with a before copy), 03 atomize for hand-off (inventory snippet, tokens, variant sets, clean-up, hand-off package per target). Gaps noted: repeated-structure detection and text styles are use_figma snippets, cross-page move is use_figma.
+
+**Next step (designer's call):** turn the gaps into tools (`find_repeated_patterns`, `create_text_style`/`apply_text_style`, `move_to_page`) if the workflows get used; longer live task; smaller models; `FIGMA_MCP_PROFILE` for LM Studio chat.
 
 **Open questions:** which local models to target first (Gemma 4 26B-A4B / 31B, Qwen3.8 27B). Models have vision — screenshots stay inline (decided 2026-10-11). Client priority (2026-10-11): 1) **Hermes Agent** over LM Studio (local models), 2) Claude Code + Codex (big LLMs), 3) LM Studio chat (uncertain). Hermes — it accumulates skills, so the repo should ship a seed SKILL.md (proposal P2.0) and README `tools.include` profiles instead of in-server profiles.
 

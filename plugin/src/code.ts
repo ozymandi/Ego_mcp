@@ -571,6 +571,9 @@ async function execCode(payload: ExecPayload) {
   } catch (err) {
     if (track && payload.rollback_on_error !== false) {
       await settleChanges(Date.now());
+      // Helpers (createAutoLayout, insert via snippets) create through the
+      // real figma object, so merge the page's CREATE events too.
+      for (const ch of changeBuffer) if (ch.t >= start && ch.type === "CREATE") created.add(ch.id);
       const rolled: string[] = [];
       for (const id of created) {
         try {

@@ -90,3 +90,46 @@ critiques both, and returns one screenshot with the three side by side.
 - [ ] designer approved explicitly; only approved items applied
 - [ ] "before" copy kept until the designer closes the comparison
 - [ ] critique on the region reports 0 primary after the change
+
+## Running it in Hermes
+
+Profile `core` is enough. Three messages:
+
+```
+1  Analyse the selected section "Checkout / Payment". Do not change anything;
+   give me a numbered proposal with node ids, reason and tool per item, and
+   say what you will not touch.
+2  Apply 1, 2 and 4. Keep a "before" copy to the right. Critique to 0 primary
+   and send one screenshot of both.
+3  Delete the "before" copy.
+```
+
+Hermes reads spec, variables, critique and the screenshot before proposing
+because the skill's workflow says "inspect first". If the proposal comes
+back as prose without ids, answer "ids and tools per item" once; the skill
+then holds for the session.
+
+## Running it in LM Studio chat
+
+System prompt from the workflows index, plus:
+
+```
+For this chat: never change the canvas before I approve a numbered proposal.
+Proposals list node id, the change, the reason and the tool for each item.
+```
+
+Then:
+
+```
+1a Call get_selection, then get_node_spec and critique_design on the
+   selected frame, and get_screenshot. Summarise what you see in 5 lines.
+1b Propose changes as a numbered list: node id, change, reason, tool.
+2a Clone the frame, rename the clone "… — before", move it 1200px to the right.
+2b Apply item 1 only.   (one message per item for a 27B model; Gemma 4 31B handles "apply 1, 2 and 4")
+2c Run critique_design with min_severity primary on the original frame.
+2d Take one screenshot of the original and the "before" copy.
+3  Delete the "before" copy.
+```
+
+Without a skill the model will sometimes apply before you approve; the
+system-prompt line above is what prevents it, so keep it in every chat.

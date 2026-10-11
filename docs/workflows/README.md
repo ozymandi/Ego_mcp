@@ -27,3 +27,34 @@ Conventions shared by all three:
 
 Profiles: workflow 1 and 3 need `design` (components, variables); workflow
 2 runs on `core` plus `critique_design`.
+
+## Hermes vs LM Studio chat
+
+Each workflow page ends with two sections, one per client. The difference
+in one paragraph: **Hermes** loads `skills/figma-mcp/SKILL.md` on demand, so
+the prompts can be short and the agent already knows the rules (act
+directly, ids not names, one critique per screen, fix recipes). **LM Studio
+chat** has no skills and sends all 90 tools every turn, so the rules go into
+the chat's system prompt, each step is its own message, and the model gets
+reminded which tool to use. Both run the same server; the tool traces are
+the same.
+
+System prompt for LM Studio chat (paste once per chat; the per-workflow
+sections add one or two lines to it):
+
+```
+You control Figma through the figma MCP tools. The plugin is connected and a
+design file is open. Act on requests directly; do not call bridge_status
+first. Prefer structured tools (create_frame, create_text, set_fill,
+set_auto_layout, create_instance, insert_icon, bind_variable) over use_figma;
+in use_figma colors are 0-1, load fonts before editing text, return a small
+object with ids. Reuse node ids from earlier results instead of searching
+again. After building or changing a screen: critique_design on its root, fix
+every P finding with the tool named in the line, critique_design once more,
+then one get_screenshot. Never run the critique more than twice per screen.
+Name layers by role (Section/Hero, Button/Primary). Reply in one or two
+sentences with the node ids you created or changed.
+```
+
+Load the model with a 32k context or more; the tool list alone is ~12k
+tokens for Qwen3.8 and ~10k for Gemma 4.

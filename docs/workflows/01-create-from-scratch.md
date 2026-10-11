@@ -123,3 +123,56 @@ variant's good pieces are already components, so nothing is lost.
 - [ ] every repeated element is an instance, not a copy
 - [ ] variants differ in a decision; each critiqued to 0 primary
 - [ ] winner moved to the Screens page, named, spec saved
+
+## Running it in Hermes
+
+Profile `design`, skill loaded. The prompts above work as written; Hermes
+follows the skill for the rest. A full session is five messages:
+
+```
+1  Create a page "WIP / Invoices", switch to it, and set up the Theme tokens:
+   <token list>.
+2  Build the Button, Input, Badge/Status and Table/Row component sets on this
+   page, bound to Theme tokens. One set at a time; tell me the ids.
+3  Build variants A and B of the Invoices screen side by side (1440×1024)
+   from those components: <brief>.
+4  Critique both, fix every primary finding, list the advisories you left.
+5  A wins. Move it to "Screens" as "Invoices", delete B, write the DESIGN note.
+```
+
+Expect `use_figma` for the heavy lifting (whole component sets in one
+snippet) and structured tools for touch-ups. If Hermes starts
+re-screenshotting after every call, say "one screenshot per step"; the skill
+says so but a long session can drift. Context: Qwen3.8 at ~8k tokens for
+the profile plus the skill leaves room for the whole session on 32k; if
+`/compact` kicks in mid-way, repeat the ids you care about in the next
+message.
+
+## Running it in LM Studio chat
+
+System prompt from the workflows index, plus this line:
+
+```
+For this chat: build components as variant sets bound to the Theme tokens;
+screens only from instances of those components.
+```
+
+Split each numbered step into smaller messages, because without the skill
+the model does not keep a multi-step plan:
+
+```
+1a Create a page "WIP / Invoices" and switch to it.
+1b Create a variable collection "Theme" with modes Light and Dark.
+1c Create these COLOR variables in it with Light/Dark values: … (list)
+1d Create FLOAT variables space/4, 8, 12, 16, 24, 32 and radius/sm=6, md=10, lg=16.
+2a Build a Button component with variants Kind=Primary|Secondary|Ghost × State=Default|Hover|Disabled; bind fill, padding and radius to Theme variables; combine them as a set named "Button".
+2b Same for Input (State=Default|Focus|Error).  …
+3a Create a 1440×1024 frame "Invoices / A — table first" at 0,0 with vertical auto-layout.
+3b Inside it place instances: Page/Header, a Filter row, 8 Table/Row with realistic invoice data, status badges set per row.
+3c Same for "Invoices / B — cards first" at 1600,0: three summary cards above a lighter table.
+4  Run critique_design on A and fix every P finding, then run it again. Then B.
+5  Take one screenshot of A and B.
+```
+
+Paste ids back when the model loses them ("the set is 15:2"). Older LM
+Studio builds do not show the screenshot; open the PNG from `screenshots/`.

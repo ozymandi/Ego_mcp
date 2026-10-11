@@ -152,3 +152,66 @@ instance component + properties.
   remove the original); `move_node` is same-page only.
 - **Text styles** have no structured tool yet (`use_figma`:
   `figma.createTextStyle()`, `node.textStyleId = style.id`).
+
+## Running it in Hermes
+
+Profile `design`. Register a workspace once (`register_workspace
+{name: "handoff", path: "E:/…/handoff"}`) so specs can be written to disk.
+Six messages, in the order of the sections above:
+
+```
+1  Inventory the "Invoices" screen: text styles, colors, radii, spacing,
+   repeated structures. Use the inventory snippet; return counts and
+   component candidates, change nothing.
+2  Create the Theme collection from the inventory (<your cut>) and bind every
+   matching fill, stroke, radius and gap on the screen. Confirm with
+   get_variable_defs and the design-system critique rules.
+3  Make component sets, smallest first: Badge/Status, Button, Input, Table/Row,
+   Card/Summary. Replace originals with instances. Report each set's id and
+   variants.
+4  Clean-up pass: default names, hidden layers, absolute children, off-grid
+   spacing, mismatched radii. Critique to 0 primary.
+5  Write the hand-off package to the "handoff" workspace: screen spec,
+   component specs, tokens.json, icons as SVG, 2x PNG.
+6  Generate Code Connect templates for Button and Badge/Status against
+   src/components and save them next to the components.   (code targets only)
+```
+
+Step 2 is many `bind_variable` calls; let it run. Step 3 is where Hermes
+uses `use_figma` heavily; the skill's helpers (`query`, `set`,
+`createAutoLayout`) keep those snippets short.
+
+## Running it in LM Studio chat
+
+System prompt from the workflows index, plus:
+
+```
+For this chat: work on the screen named "Invoices" only. Components are
+named Family/Name with variant properties Prop=Value. Write files only to
+the "handoff" workspace.
+```
+
+Break the sections into single-purpose messages:
+
+```
+1a Run get_node_spec on the frame "Invoices" with max_depth 12 and tell me the distinct font sizes, colors and radii you see.
+1b Run this use_figma snippet and return its result: <paste the inventory snippet>
+2a Create the collection "Theme" with mode Light.
+2b Create COLOR variables: color/bg=#FFFFFF, color/surface=#F6F7F9, … (your list)
+2c Create FLOAT variables: space/4=4 … radius/lg=16.
+2d For every node on "Invoices" whose fill is #1D4ED8, bind the fill to color/brand.   (one color per message)
+2e For every auto-layout frame with gap 16, bind itemSpacing to space/16.     (one value per message)
+3a Turn the four status badges (ids …) into components named Status=Paid, Status=Sent, Status=Overdue, Status=Draft, then combine them as "Badge/Status".
+3b Replace each original badge on the screen with an instance of Badge/Status set to the right Status, at the same position; delete the originals.
+3c Same for Button … / Input … / Table/Row …
+4  Run critique_design on "Invoices" with rules unnamed-layers, hidden-layers, absolute-in-autolayout, off-grid-spacing, inconsistent-radius and fix what it lists.
+5a Run get_node_spec on "Invoices" and write the result to handoff/invoices.md.
+5b For each component set, write its spec to handoff/components/<name>.md.
+5c Call list_variables for "Theme" and write the JSON to handoff/tokens.json.
+5d Take a scale-2 screenshot of "Invoices".
+```
+
+Give the model the node ids from step 1 explicitly in later messages; LM
+Studio keeps the chat history but a 27B model drops ids after a few turns.
+Steps 2d/2e are the slow part: one message per color or value keeps each
+call small enough to retry.

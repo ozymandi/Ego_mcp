@@ -61,6 +61,8 @@ Reach feature parity with the official Figma Dev Mode MCP that Claude Code uses,
 
 **2026-10-11, phase 9 done:** `critique_design` + `list_critique_rules` (90 tools). `src/critique/snapshot.ts` (plugin walker -> JSON), `color.ts`, `rules.ts` (43 rules: 30 Impeccable-derived + 13 Figma-only; pure functions over the snapshot), `tools-critique.ts`. `npm run smoke:critique`: 26/26 expected rules fire on the cliché fixture, 0 findings on the clean one. Skill: `references/critique.md` (workflow, fix recipes, judgement rubric), SKILL.md rule 4a + tool-map row; README phase 9; profiles core/design include it; live task `critique-fix` added to live-tasks.mjs but NOT run yet (LM Studio server was down).
 
+**2026-10-11, docs:** `docs/pipelines/design-review.md` (rule groups, report format, four Hermes examples, LM Studio system prompt + example, Impeccable at the code stage, testing); links from pipelines README, hermes-local, lmstudio-chat.
+
 **Next step:** run `npm run eval:live -- --tasks critique-fix --profile design --skill` for Gemma and Qwen when LM Studio is up; then designer's call on the rest (longer live task, smaller models, `FIGMA_MCP_PROFILE`, remaining P3).
 
 **Open questions:** which local models to target first (Gemma 4 26B-A4B / 31B, Qwen3.8 27B). Models have vision — screenshots stay inline (decided 2026-10-11). Client priority (2026-10-11): 1) **Hermes Agent** over LM Studio (local models), 2) Claude Code + Codex (big LLMs), 3) LM Studio chat (uncertain). Hermes — it accumulates skills, so the repo should ship a seed SKILL.md (proposal P2.0) and README `tools.include` profiles instead of in-server profiles.

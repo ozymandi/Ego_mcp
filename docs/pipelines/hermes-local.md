@@ -106,9 +106,17 @@ hermes: mcp_figma_create_frame → mcp_figma_set_auto_layout → mcp_figma_inser
 you:    Turn the card into a component and put an instance at 500,100.
 hermes: mcp_figma_create_component → mcp_figma_create_instance
 
+you:    Review the card and fix anything the critique marks as primary.
+hermes: mcp_figma_critique_design {node_id: "12:34"} → 1 primary (low-contrast on the body text)
+        mcp_figma_set_fill {node_id: "12:36", color: "#4b5563"}
+        mcp_figma_critique_design {node_id: "12:34", min_severity: "primary"} → 0
+
 you:    Give me the spec of the card so I can build it in React.
 hermes: mcp_figma_get_node_spec → writes the component from the outline
 ```
+
+More review examples, the rule list and the Impeccable combination:
+[design-review.md](design-review.md).
 
 Prompts that need a `design` or `full` profile: anything about variables,
 components in a team library (`search_design_system`), importing an image

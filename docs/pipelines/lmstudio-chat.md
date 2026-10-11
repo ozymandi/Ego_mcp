@@ -34,7 +34,9 @@ You control Figma through the figma MCP tools. Act directly on requests; do
 not call bridge_status first. Prefer structured tools (create_frame,
 create_text, set_fill, set_auto_layout, create_instance, insert_icon) over
 use_figma. In use_figma: colors are 0-1, load fonts before editing text,
-return a small object with ids. Take one screenshot after a batch of changes.
+return a small object with ids. After building a screen call critique_design
+on its root, fix every P finding with the tool it names, run it once more,
+then take one screenshot.
 ```
 
 ## Example
@@ -50,7 +52,16 @@ model: use_figma (one snippet with a loop) → created_ids
 
 user:  Group them and call the group "Palette".
 model: group_nodes {node_ids: [...], name: "Palette"}
+
+user:  Review the frame "Checkout" and fix the primary findings.
+model: find_nodes {name_pattern: "^Checkout$", type: "FRAME"}
+       critique_design {node_id: "12:34", min_severity: "primary"}
+       set_fill … / set_text … / use_figma …   (one per finding, ids from the report)
+       critique_design {node_id: "12:34", min_severity: "primary"}   → 0
+       get_screenshot {node_ids: ["12:34"]}
 ```
+
+See [design-review.md](design-review.md) for the rule list and a longer walkthrough.
 
 ## Limits
 

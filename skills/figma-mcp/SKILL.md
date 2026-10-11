@@ -67,7 +67,7 @@ The snippet is the body of an async function. `figma`, `selection`, `currentPage
 |--------|------|
 | `createAutoLayout('VERTICAL' \| 'HORIZONTAL', props?)` | frame with auto-layout on, hugging both axes; `props` go through `set` |
 | `set(node, { name, width, height, fill: '#hex', stroke: '#hex', padding: 16, itemSpacing: 8, cornerRadius: 8, ... })` | assigns many properties at once; `width`/`height` use `resize()`; `layoutMode` applied first |
-| `query(root, 'FRAME[name^=Card] > TEXT')` | CSS-like search: type, `[name=…]`, `[name*=…]`, `[name^=…]`, `[name$=…]`, `[visible=false]`, `#id`, `*`, descendant, `>`, `,` |
+| `query(figma.currentPage, 'FRAME[name^=Card] > TEXT')` | CSS-like search under a node: type, `[name=…]`, `[name*=…]`, `[name^=…]`, `[name$=…]`, `[visible=false]`, `#id`, `*`, descendant, `>`, `,`. For a known id use `await figma.getNodeByIdAsync('12:34')` instead |
 | `await loadFontsFor(node)` | loads every font used in a text node or subtree before you edit it |
 | `hex('#0d99ff')` → `{r,g,b}`; `solid('#0d99ff80')` → SOLID paint with opacity | colors without 0–1 arithmetic |
 

@@ -145,7 +145,7 @@ for (const c of cases) {
         body: JSON.stringify({
           model,
           temperature,
-          max_tokens: 600,
+          max_tokens: 8000, // thinking models reason before the tool call
           messages: [
             { role: "system", content: systemPrompt },
             { role: "user", content: c.prompt },
@@ -154,11 +154,13 @@ for (const c of cases) {
           tool_choice: "auto",
         }),
       });
-      const msg = res.choices?.[0]?.message ?? {};
+      const choice = res.choices?.[0] ?? {};
+      const msg = choice.message ?? {};
       usage = res.usage ?? null;
       text = (msg.content ?? "").slice(0, 200);
       const tc = msg.tool_calls?.[0];
       if (tc?.function) call = { name: tc.function.name, arguments: tc.function.arguments };
+      else if (choice.finish_reason === "length") error = `output cut at max_tokens (finish_reason=length)`;
     } catch (e) {
       error = e.message;
     }

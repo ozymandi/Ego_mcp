@@ -209,8 +209,13 @@ const DIAGNOSES: { re: RegExp; hint: string; safe_to_retry: boolean }[] = [
     safe_to_retry: true,
   },
   {
-    re: /is not a function|is not defined/i,
-    hint: "Check the API name against the Plugin API typings. Helpers available in snippets: query(root, selector), set(node, props), createAutoLayout(direction, props), loadFontsFor(node), hex(color), solid(color).",
+    re: /is not defined/i,
+    hint: "Undefined name. In scope: figma, selection, currentPage, and helpers query(figma.currentPage, 'FRAME[name=Card]'), set(node, {...}), createAutoLayout('VERTICAL', {...}), await loadFontsFor(node), hex('#0d99ff'), solid('#0d99ff'). For a node id use `await figma.getNodeByIdAsync('12:34')`.",
+    safe_to_retry: true,
+  },
+  {
+    re: /not a function/i,
+    hint: "That method does not exist. Common correct names: figma.createComponentFromNode(node), component.createInstance(), figma.createFrame()/createText()/createRectangle(), figma.group(nodes, parent), figma.combineAsVariants(components, parent), node.findAllWithCriteria({types:['TEXT']}), instance.setProperties({...}), await figma.importComponentByKeyAsync(key).",
     safe_to_retry: true,
   },
   {

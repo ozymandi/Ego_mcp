@@ -390,6 +390,24 @@ Profiles live in `scripts/eval/profiles.json` (the same lists as the Hermes
 `tools.include` examples above). Results go to `.eval/*.json` with the
 average prompt-token count, which shows what each profile costs in context.
 
+**Live, multi-step.** `npm run eval:live` lets the model drive the real
+server, daemon and plugin on the file open in Figma desktop: six tasks
+(`scripts/eval/live-tasks.mjs` — build a card, recolor by name, rename and
+move, an icon row, component + instance, read a text) in an agent loop, each
+followed by a deterministic canvas check. Screenshots the model requests are
+fed back as images. Everything a task creates at page level is removed
+afterwards, but run it on a scratch file.
+
+```powershell
+npm run eval:live -- --profile design --skill
+npm run eval:live -- --model google/gemma-4-31b --tasks card,icon-row --max-turns 8
+```
+
+Both scripts set `max_tokens` high because thinking models (Qwen3.8, Gemma 4)
+reason before emitting the tool call; a low cap looks like "no tool call".
+Load models with `--context-length 32768` or larger: the `full` profile alone
+is 10–12k prompt tokens. Results and findings so far: `docs/eval-2026-10-11.md`.
+
 ## Architecture
 
 ```

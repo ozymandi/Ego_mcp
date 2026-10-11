@@ -11,6 +11,7 @@ import { FigmaClient, parseFileKey } from "./figma.js";
 import { ok, fail, type ToolResult } from "./result.js";
 import { outlineFile, outlineNodes } from "./outline.js";
 import { PluginBridge } from "./bridge.js";
+import { ensureDaemon, type DaemonStart } from "./daemon-launcher.js";
 import { registerCanvasTools } from "./tools-canvas.js";
 import { registerHelpTools } from "./tools-help.js";
 import { registerLibraryTools } from "./tools-libraries.js";
@@ -48,6 +49,14 @@ const figma = new FigmaClient({
 const bridgeUrl =
   process.env.FIGMA_BRIDGE_URL ??
   `ws://localhost:${process.env.FIGMA_BRIDGE_PORT ?? 7575}`;
+// Bring the bridge daemon up if nobody is listening yet (detached; it
+// outlives this process). Clients then only need the plugin running in Figma.
+let daemonStart: DaemonStart = await ensureDaemon(bridgeUrl, here);
+reportDaemon(daemonStart);
+function reportDaemon(d: DaemonStart): void {
+  if (d.state === "started") console.error(`[gemma-figma-mcp] bridge daemon autostarted (pid ${d.pid}, log ${d.log})`);
+  else if (d.state === "failed") console.error(`[gemma-figma-mcp] bridge daemon autostart failed: ${d.reason}`);
+}
 const bridge = new PluginBridge({ url: bridgeUrl });
 
 const workspacesFile = path.resolve(here, "../.workspaces.json");
@@ -274,10 +283,23 @@ server.registerTool(
   async () =>
     run(async () => {
       if (!bridge.isConnected()) {
+        // The daemon may have died since startup; try once more, then give
+        // the bridge client a moment to reconnect (it retries every 2 s).
+        daemonStart = await ensureDaemon(bridgeUrl, here);
+        reportDaemon(daemonStart);
+        for (let i = 0; i < 20 && !bridge.isConnected(); i++) {
+          await new Promise((r) => setTimeout(r, 200));
+        }
+      }
+      if (!bridge.isConnected()) {
         return {
           daemon: "unreachable",
           daemon_url: bridgeUrl,
-          hint: `Start the bridge daemon: start-bridge.bat or 'npm run bridge' in the project directory.`,
+          autostart: daemonStart,
+          hint:
+            daemonStart.state === "disabled"
+              ? "Autostart is off. Start the daemon: start-bridge.bat or 'npm run bridge' in the project directory."
+              : `Could not start the bridge daemon automatically; check ${daemonStart.state === "failed" ? daemonStart.log : "daemon.log"} or run start-bridge.bat.`,
         };
       }
       try {

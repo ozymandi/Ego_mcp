@@ -118,7 +118,7 @@ from disk, Mermaid/flowcharts, Code Connect.
 
 | Symptom | Cause | Fix |
 |---------|-------|-----|
-| every tool call fails with `Bridge daemon not reachable` | daemon not running | `start-bridge.bat` or `npm run bridge` |
+| every tool call fails with `Bridge daemon not reachable` | daemon died and autostart could not bring it back | call `bridge_status` (it restarts the daemon); then check `daemon.log`; `start-bridge.bat` as a last resort |
 | `Figma plugin not connected to bridge daemon` | plugin window closed or stale | run the plugin in Figma desktop, press Reconnect |
 | `exceed_context_size_error` on the first message | model loaded with 8192 context | `lms unload --all` then `lms load … --context-length 32768` |
 | HTTP 401 from LM Studio | API token required | token into `LM_API_KEY`, or disable the requirement |

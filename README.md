@@ -162,71 +162,31 @@ FIGMA_BRIDGE_PORT=7575           # optional, WebSocket port for the plugin bridg
 
 > `.env` is in `.gitignore`.
 
-### 3. Start the bridge daemon
+### 3. The bridge daemon (starts by itself)
 
-The Figma plugin and the MCP server both connect to a long-lived bridge
-daemon. The daemon owns the WebSocket port and routes wire messages
-between them. **Without the daemon running, the canvas tools won't work.**
+The Figma plugin and the MCP server both connect to a small bridge daemon
+that owns WebSocket port 7575 and routes messages between them. **You do not
+need to start it**: the first MCP server any client launches checks the port
+and, if nothing is listening, starts `dist/daemon.js` as a detached process
+that keeps running after the client stops. Output goes to `daemon.log` in the
+project root. The plugin retries the connection every two seconds, so the
+order does not matter: open Figma and run the plugin whenever you like.
 
-You have two options.
+So the day-to-day flow is: Figma desktop → Plugins → Development → Gemma 4
+MCP Bridge → use any client. `bridge_status` reports the daemon, the plugin
+and its build; if the daemon ever dies, calling `bridge_status` restarts it.
 
-**Option A — autostart at Windows logon (recommended).**
+Options, all optional:
 
-One-time setup, no terminal to keep open.
+| Want | Do |
+|------|----|
+| Turn autostart off | `FIGMA_BRIDGE_AUTOSTART=0` in `.env` |
+| A visible daemon window | double-click `start-bridge.bat` (autostart then finds it running and does nothing) |
+| Daemon up before any client, at logon | `pwsh -File scripts\install-autostart.ps1` (Scheduled Task, per-user, restarts on crash; remove with `scripts\uninstall-autostart.ps1`) |
+| Another port | `FIGMA_BRIDGE_PORT=7576` in `.env` and the same port in the plugin window |
+| Daemon on another machine | `FIGMA_BRIDGE_URL=ws://host:7575` (autostart only acts for localhost) |
 
-1. If you have a manual `npm run bridge` terminal open, close it (Ctrl+C).
-2. In PowerShell from the project folder, run:
-
-   ```powershell
-   pwsh -File scripts\install-autostart.ps1
-   ```
-
-   If you don't have PowerShell 7 (`pwsh`), use the bundled Windows
-   PowerShell instead — same script, just allow the unsigned file for
-   this one run:
-
-   ```powershell
-   powershell -ExecutionPolicy Bypass -File scripts\install-autostart.ps1
-   ```
-
-3. The script registers a per-user Scheduled Task, **starts it
-   immediately**, and prints `Current state: Running`. Look for the
-   final lines telling you where the log goes.
-4. In Figma, click **Reconnect** in the plugin window — the dot turns
-   green within a second or two.
-
-What the task does:
-- starts the daemon at every Windows logon,
-- runs hidden (no terminal window),
-- restarts on crash (up to 5 retries, 1-minute interval),
-- appends stdout + stderr to `daemon.log` in the project root.
-
-Useful commands:
-
-| Action | Command |
-|--------|---------|
-| Check status | `Get-ScheduledTask -TaskName Gemma4FigmaMcpDaemon` |
-| Stop without removing | `Stop-ScheduledTask -TaskName Gemma4FigmaMcpDaemon` |
-| Start again | `Start-ScheduledTask -TaskName Gemma4FigmaMcpDaemon` |
-| Tail the log | `Get-Content daemon.log -Tail 30 -Wait` |
-| Remove autostart | `pwsh -File scripts\uninstall-autostart.ps1` |
-
-The task is per-user and needs no admin privileges.
-
-**Option B — run manually in a terminal.**
-
-```powershell
-npm run bridge
-```
-
-You should see:
-
-```
-[daemon] listening on ws://:::7575
-```
-
-Leave the terminal open. The MCP server (spawned by LM Studio) and the
-Figma plugin will both connect to it.
+Manual start for debugging: `npm run bridge` prints `[daemon] listening on ws://:::7575`.
 
 ### 4. Agent skill (recommended for every client)
 

@@ -221,16 +221,18 @@ const TROUBLESHOOT = `# Troubleshooting
 
 ## "Bridge daemon not reachable" / bridge_status shows disconnected
 
-The daemon process isn't running. Two ways to fix:
+The daemon normally starts by itself with the MCP server and restarts when
+you call \`bridge_status\`. If it stays unreachable, read \`daemon.log\` in the
+project root, then:
 
-**One-shot fix (this session only):**
+**Manual start:**
 \`\`\`
 npm run bridge
 \`\`\`
 Leave the terminal open. You should see \`[daemon] listening on ws://:::7575\`.
 
-**Permanent fix (recommended):** install the autostart task so the daemon
-always runs after Windows logon:
+**Autostart at logon (optional):** install the task so the daemon runs before
+any client:
 \`\`\`
 pwsh -File scripts\\install-autostart.ps1
 \`\`\`

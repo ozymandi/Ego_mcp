@@ -4,10 +4,13 @@ One MCP server, several ways to drive it. Pick the page that matches your
 client. All of them need the same three things running on the machine with
 Figma desktop:
 
-1. the bridge daemon (`start-bridge.bat`, `npm run bridge`, or the autostart
-   task from `scripts/install-autostart.ps1`),
-2. the Figma plugin (Plugins → Development → Gemma 4 MCP Bridge, green dot),
-3. `.env` with `FIGMA_TOKEN` (REST tools only; canvas tools work without it).
+1. the Figma plugin (Plugins → Development → Gemma 4 MCP Bridge, green dot),
+2. `.env` with `FIGMA_TOKEN` (REST tools only; canvas tools work without it).
+
+The bridge daemon that connects plugin and server starts automatically
+with the first MCP server any client launches, and stays up afterwards
+(`daemon.log` in the project root). `start-bridge.bat` and the autostart
+task are optional extras.
 
 | Pipeline | Models | Tool list in context | Skill | Page |
 |----------|--------|----------------------|-------|------|

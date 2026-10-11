@@ -92,7 +92,7 @@ Worked examples: `references/snippets.md`. Wrong/right pairs: `references/gotcha
 
 | Error contains | Cause | Fix |
 |----------------|-------|-----|
-| `Bridge daemon not reachable` | daemon not running | ask the user to run `start-bridge.bat` or `npm run bridge` |
+| `Bridge daemon not reachable` | daemon died | call `bridge_status` once (it restarts the daemon); if still unreachable, ask the user to check `daemon.log` or run `start-bridge.bat` |
 | `Figma plugin not connected` / `disconnected before response` | plugin window closed | ask the user to reopen the plugin and press Reconnect |
 | `Node not found` / `does not exist` | wrong id, other page, node was deleted | `find_nodes` again; do not reuse ids from a failed call |
 | `unloaded font` | text edited without `loadFontAsync` | load the font (rule 4) and retry |

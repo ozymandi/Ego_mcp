@@ -127,7 +127,7 @@ export class PluginBridge {
   ): Promise<T> {
     if (!this.isConnected()) {
       throw new Error(
-        `Bridge daemon not reachable at ${this.url}. Start it with 'npm run bridge' in this project directory.`,
+        `Bridge daemon not reachable at ${this.url}. Call bridge_status (it restarts the daemon); if that fails, run start-bridge.bat in the project directory.`,
       );
     }
     const id = randomUUID();

@@ -12,39 +12,7 @@ import { spawn } from "node:child_process";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { FigmaClient, FigmaError, parseFileKey } from "./figma.js";
 
-type ToolResult = {
-  content: { type: "text"; text: string }[];
-  isError?: boolean;
-};
-
-function ok(data: unknown): ToolResult {
-  return {
-    content: [
-      {
-        type: "text",
-        text: typeof data === "string" ? data : JSON.stringify(data, null, 2),
-      },
-    ],
-  };
-}
-
-function fail(err: unknown): ToolResult {
-  if (err instanceof FigmaError) {
-    return {
-      isError: true,
-      content: [
-        {
-          type: "text",
-          text:
-            `Figma API error ${err.status}: ${err.message}\n` +
-            JSON.stringify(err.body, null, 2),
-        },
-      ],
-    };
-  }
-  const msg = err instanceof Error ? err.message : String(err);
-  return { isError: true, content: [{ type: "text", text: `Error: ${msg}` }] };
-}
+import { ok, fail } from "./result.js";
 
 // ---- Filesystem helpers --------------------------------------------------
 
@@ -475,7 +443,7 @@ export function registerCodeConnectTools(
     {
       title: "Generate a Code Connect template",
       description:
-        "Generates a *.figma.ts template for React, Vue, or HTML. Fetches the node's componentPropertyDefinitions and renders props using figma.boolean / figma.string / figma.enum / figma.instance.",
+      "Generate a *.figma.ts template (React/Vue/HTML) from the node's component properties.",
       inputSchema: {
         file_key: z.string().min(1).optional(),
         node_id: z.string().min(1),
@@ -485,13 +453,13 @@ export function registerCodeConnectTools(
           .min(1)
           .optional()
           .describe(
-            "Name used in the generated import + figma.connect call. Defaults to the node's name (sanitized).",
+            "Component name for import + figma.connect; default: node name.",
           ),
         component_import: z
           .string()
           .optional()
           .describe(
-            "Custom import line (e.g. `import { Button } from '@/components/Button'`). Overrides the auto-generated import.",
+            "Custom import line; overrides the generated one.",
           ),
       },
     },
@@ -578,13 +546,13 @@ export function registerCodeConnectTools(
     {
       title: "Publish Code Connect mappings to Figma",
       description:
-        "Runs `npx --yes @figma/code-connect connect publish` in the given directory. Requires the user to have the Figma Code Connect CLI accessible (npx will install on demand). The Figma access token must be available in the CLI's environment (FIGMA_ACCESS_TOKEN). Pass dry_run=true to preview without publishing.",
+      "Run `npx @figma/code-connect connect publish` in the directory (token forwarded as FIGMA_ACCESS_TOKEN). dry_run previews.",
       inputSchema: {
         directory: z
           .string()
           .optional()
           .describe(
-            "Project directory containing your *.figma.ts(x) files and a `figma.config.json`. Default: cwd.",
+            "Directory with *.figma.ts(x) and figma.config.json; default cwd.",
           ),
         dry_run: z.boolean().optional().default(false),
       },

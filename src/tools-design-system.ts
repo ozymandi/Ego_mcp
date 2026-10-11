@@ -12,39 +12,7 @@ import {
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { FigmaClient, FigmaError } from "./figma.js";
 
-type ToolResult = {
-  content: { type: "text"; text: string }[];
-  isError?: boolean;
-};
-
-function ok(data: unknown): ToolResult {
-  return {
-    content: [
-      {
-        type: "text",
-        text: typeof data === "string" ? data : JSON.stringify(data, null, 2),
-      },
-    ],
-  };
-}
-
-function fail(err: unknown): ToolResult {
-  if (err instanceof FigmaError) {
-    return {
-      isError: true,
-      content: [
-        {
-          type: "text",
-          text:
-            `Figma API error ${err.status}: ${err.message}\n` +
-            JSON.stringify(err.body, null, 2),
-        },
-      ],
-    };
-  }
-  const msg = err instanceof Error ? err.message : String(err);
-  return { isError: true, content: [{ type: "text", text: `Error: ${msg}` }] };
-}
+import { ok, fail } from "./result.js";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const cacheDir = path.resolve(here, "../.cache");
@@ -119,13 +87,13 @@ export function registerDesignSystemTools(
     {
       title: "Index a team's design system",
       description:
-        "Fetches every component, component set, and style published by a Figma team and writes a local JSON cache (.cache/design-system-<team_id>.json) for fast searches. Paginates through the team library endpoints. Re-run to refresh.",
+      "Download a team's published components, component sets and styles into a local cache (.cache/design-system-<team>.json). Re-run to refresh.",
       inputSchema: {
         team_id: z
           .string()
           .min(1)
           .describe(
-            "Figma team id (from https://www.figma.com/files/team/<TEAM_ID>/...).",
+            "Team id from figma.com/files/team/<TEAM_ID>/...",
           ),
         page_size: z
           .number()
@@ -134,7 +102,7 @@ export function registerDesignSystemTools(
           .max(30)
           .optional()
           .default(30)
-          .describe("Page size per Figma API call. Max 30."),
+          .describe("Per-call page size; max 1000."),
       },
     },
     async ({ team_id, page_size }) => {
@@ -216,14 +184,14 @@ export function registerDesignSystemTools(
     {
       title: "Search the indexed design system",
       description:
-        "Searches the local cache built by index_design_system. Case-insensitive scoring on name + description.",
+      "Fuzzy search the local design-system cache by name/description.",
       inputSchema: {
         query: z.string().min(1),
         team_id: z
           .string()
           .optional()
           .describe(
-            "Restrict to one team's cache. Omit to search all cached teams.",
+            "Limit to one team; default all cached.",
           ),
         type: z
           .enum(["component", "component_set", "style"])

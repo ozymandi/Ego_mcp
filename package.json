@@ -15,7 +15,10 @@
     "bridge": "node dist/daemon.js",
     "bridge:dev": "tsx src/daemon.ts",
     "dev": "tsx src/server.ts",
-    "typecheck": "tsc --noEmit && cd plugin && npm run typecheck"
+    "typecheck": "tsc --noEmit && cd plugin && npm run typecheck",
+    "docs:tools": "node scripts/gen-tool-docs.mjs",
+    "measure:tools": "node scripts/measure-tools.mjs",
+    "smoke:plugin": "node scripts/smoke-plugin.mjs"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.4",

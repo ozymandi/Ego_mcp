@@ -36,7 +36,7 @@ Without an argument you get this index.
 const OVERVIEW = `# Overview
 
 This MCP server connects a local language model (Gemma 4 running in LM Studio)
-to Figma. It exposes **31 tools** spread across four groups:
+to Figma. It exposes 60+ tools spread across these groups:
 
 1. **REST tools** — read public Figma data through the official API. Needs a
    personal access token; works without the plugin.
@@ -108,7 +108,11 @@ you pass parameters.
 
 For anything not covered, drop down to \`use_figma\` with a raw JS snippet:
 \`figma\`, \`selection\`, \`currentPage\` are in scope and you can \`await\` /
-\`return\` like in a normal async function.
+\`return\` like in a normal async function. Helpers are in scope too:
+\`createAutoLayout(dir, props)\`, \`set(node, props)\`, \`query(root, 'FRAME[name^=Card] > TEXT')\`,
+\`await loadFontsFor(node)\`, \`hex('#0d99ff')\`, \`solid('#0d99ff80')\`. The response
+lists \`created_ids\` / \`changed_ids\`; pass \`screenshot: true\` to get a PNG of what
+you created. Errors come with a \`Hint:\` line and \`safe_to_retry\`.
 `;
 
 const REST = `# REST tools
@@ -119,9 +123,9 @@ in \`.env\` (\`FIGMA_TOKEN\`).
 
 ## File-level tools
 - \`whoami\` — confirm the token works
-- \`get_file(file_key)\` — full document tree (can be huge)
-- \`get_metadata(file_key)\` — top-level only, depth=1 (cheap)
-- \`get_node(file_key, node_ids[])\` — specific subtrees
+- \`get_file(file_key, depth?, format?)\` — whole document as an outline (\`format="raw"\` for JSON)
+- \`get_metadata(file_key)\` — pages + top-level frames, depth=2 (cheap)
+- \`get_node(file_key, node_ids[], format?, max_depth?)\` — subtree outlines
 - \`get_components(file_key)\` — components defined in the file
 - \`get_file_component_sets(file_key)\` — variant groups in the file
 - \`get_styles(file_key)\` — paint/text/effect/grid styles
@@ -149,7 +153,7 @@ on an INSTANCE node).
 - \`get_team_styles(team_id, page_size?, after?)\`
 
 Find \`team_id\` in the team URL:
-\`https://www.figma.com/files/team/<TEAM_ID>/...\`. Use \`page_size\` up to 30
+\`https://www.figma.com/files/team/<TEAM_ID>/...\`. Use \`page_size\` up to 1000
 and the cursor in the response's \`meta.cursor.after\` to paginate.
 
 ## file_key
@@ -164,8 +168,10 @@ Set \`FIGMA_DEFAULT_FILE_KEY\` in \`.env\` to omit it from every call.
 ## Tips
 
 - Start with \`get_metadata\` to see pages, then \`get_node\` for a specific
-  subtree. \`get_file\` returns the entire document — easy to blow your
-  context window.
+  subtree. Outline lines look like
+  \`- FRAME "Card" id=12:34 [100,200 320x180] layout=VERTICAL gap=8 fill=#ffffff\`.
+  Results are capped at 20 000 chars; a \`…[truncated]\` marker means narrow
+  the request (node_ids, depth, max_depth).
 - \`get_image\` returns S3 URLs valid for ~30 days. For inline images of
   the live canvas, use \`get_screenshot\` (plugin) instead.
 `;

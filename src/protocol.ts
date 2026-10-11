@@ -21,14 +21,23 @@ export interface Response {
   ok: boolean;
   result?: unknown;
   error?: string;
+  // Present when the plugin recognised the error: what to do about it, and
+  // whether the same snippet (fixed) can be re-sent without re-reading the
+  // canvas first.
+  hint?: string;
+  safe_to_retry?: boolean;
 }
 
 export interface ExecPayload {
+  // Body of an async function; `return` surfaces the result.
   code: string;
-  // When true, the snippet is wrapped so its last expression / returned value
-  // is awaited and used as the result. When false, the snippet must call
-  // `return <value>` (or be a function body returning a promise).
-  async?: boolean;
+  // Collect created/changed/deleted node ids during the run and return
+  // { result, created_ids, changed_ids, deleted_ids } instead of the bare result.
+  track?: boolean;
+  // With track: export the top-level created nodes (max 2) after the run.
+  screenshot?: boolean;
+  // Soft limit on nodes created per call; exceeding it adds a warning.
+  max_created?: number;
 }
 
 export interface ScreenshotPayload {
@@ -36,4 +45,6 @@ export interface ScreenshotPayload {
   node_ids?: string[];
   format?: "PNG" | "JPG" | "SVG";
   scale?: number;
+  // Largest output dimension in px; the plugin lowers the scale to respect it.
+  max_px?: number;
 }

@@ -2,49 +2,13 @@ import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { FigmaClient, FigmaError, parseFileKey } from "./figma.js";
 
-type ToolResult = {
-  content: { type: "text"; text: string }[];
-  isError?: boolean;
-};
-
-function ok(data: unknown): ToolResult {
-  return {
-    content: [
-      {
-        type: "text",
-        text: typeof data === "string" ? data : JSON.stringify(data, null, 2),
-      },
-    ],
-  };
-}
-
-function fail(err: unknown): ToolResult {
-  if (err instanceof FigmaError) {
-    const enterpriseHint =
-      err.status === 403
-        ? "\n\nNote: Variables and library-scope endpoints often require an Enterprise-tier Figma plan."
-        : "";
-    return {
-      isError: true,
-      content: [
-        {
-          type: "text",
-          text:
-            `Figma API error ${err.status}: ${err.message}${enterpriseHint}\n` +
-            JSON.stringify(err.body, null, 2),
-        },
-      ],
-    };
-  }
-  const msg = err instanceof Error ? err.message : String(err);
-  return { isError: true, content: [{ type: "text", text: `Error: ${msg}` }] };
-}
+import { ok, fail } from "./result.js";
 
 const fileKeyArg = z
   .string()
   .min(1)
   .describe(
-    "Figma file key or full Figma URL. Optional if FIGMA_DEFAULT_FILE_KEY is set.",
+    "File key or Figma URL. Optional if FIGMA_DEFAULT_FILE_KEY is set.",
   )
   .optional();
 
@@ -52,21 +16,21 @@ const teamIdArg = z
   .string()
   .min(1)
   .describe(
-    "Figma team id. Find it in the team URL: https://www.figma.com/files/team/<TEAM_ID>/...",
+    "Team id from figma.com/files/team/<TEAM_ID>/...",
   );
 
 const pageSizeArg = z
   .number()
   .int()
   .positive()
-  .max(30)
+  .max(1000)
   .optional()
-  .describe("Page size (max 30 per Figma API).");
+  .describe("Up to 1000; default 30.");
 
 const afterArg = z
   .union([z.string(), z.number()])
   .optional()
-  .describe("Cursor for the next page (from previous response's `cursor.after`).");
+  .describe("Cursor from the previous response (cursor.after).");
 
 export function registerLibraryTools(
   server: McpServer,
@@ -190,7 +154,7 @@ export function registerLibraryTools(
     {
       title: "List team library components",
       description:
-        "Returns components published in a team's library. Paginated — pass `after` to fetch the next page.",
+      "Published team-library components, paginated (after).",
       inputSchema: {
         team_id: teamIdArg,
         page_size: pageSizeArg,
@@ -211,7 +175,7 @@ export function registerLibraryTools(
     {
       title: "List team library component sets",
       description:
-        "Returns component sets published in a team's library. Paginated.",
+      "Published team-library component sets, paginated.",
       inputSchema: {
         team_id: teamIdArg,
         page_size: pageSizeArg,
@@ -234,7 +198,7 @@ export function registerLibraryTools(
     {
       title: "List team library styles",
       description:
-        "Returns styles published in a team's library. Paginated.",
+      "Published team-library styles, paginated.",
       inputSchema: {
         team_id: teamIdArg,
         page_size: pageSizeArg,

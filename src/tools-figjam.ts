@@ -3,26 +3,7 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { PluginBridge } from "./bridge.js";
 import { J } from "./canvas-helpers.js";
 
-type ToolResult = {
-  content: { type: "text"; text: string }[];
-  isError?: boolean;
-};
-
-function ok(data: unknown): ToolResult {
-  return {
-    content: [
-      {
-        type: "text",
-        text: typeof data === "string" ? data : JSON.stringify(data, null, 2),
-      },
-    ],
-  };
-}
-
-function fail(err: unknown): ToolResult {
-  const msg = err instanceof Error ? err.message : String(err);
-  return { isError: true, content: [{ type: "text", text: `Error: ${msg}` }] };
-}
+import { ok, fail } from "./result.js";
 
 const STICKY_COLOR = z.enum([
   "yellow",
@@ -49,7 +30,7 @@ export function registerFigJamTools(
     {
       title: "Create a FigJam sticky note",
       description:
-        "Creates a sticky at (x, y) with the given text and color. FigJam-only (Figma Design files don't support sticky nodes).",
+      "FigJam sticky note at x,y (FigJam files only).",
       inputSchema: {
         x: z.number(),
         y: z.number(),
@@ -58,7 +39,7 @@ export function registerFigJamTools(
         parent_id: z
           .string()
           .optional()
-          .describe("Optional parent node id. Default: current page."),
+          .describe("Parent node id; default: current page."),
       },
     },
     async ({ x, y, text, color, parent_id }) => {
@@ -106,7 +87,7 @@ export function registerFigJamTools(
     {
       title: "Create a connector between two nodes",
       description:
-        "Draws a connector from one node to another. Works in both FigJam and Figma Design files (with documentAccess: dynamic-page).",
+      "Connector between two nodes (FigJam and Design).",
       inputSchema: {
         from_id: z.string().min(1),
         to_id: z.string().min(1),
@@ -115,7 +96,7 @@ export function registerFigJamTools(
         stroke_color: z
           .string()
           .optional()
-          .describe("Hex color for the connector stroke. Default: dark gray."),
+          .describe("Hex; default dark gray."),
       },
     },
     async ({ from_id, to_id, label, style, stroke_color }) => {

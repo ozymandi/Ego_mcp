@@ -15,36 +15,17 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { PluginBridge } from "./bridge.js";
 import type { WorkspaceRegistry } from "./workspaces.js";
 
-type ToolResult = {
-  content: { type: "text"; text: string }[];
-  isError?: boolean;
-};
-
-function ok(data: unknown): ToolResult {
-  return {
-    content: [
-      {
-        type: "text",
-        text: typeof data === "string" ? data : JSON.stringify(data, null, 2),
-      },
-    ],
-  };
-}
-
-function fail(err: unknown): ToolResult {
-  const msg = err instanceof Error ? err.message : String(err);
-  return { isError: true, content: [{ type: "text", text: `Error: ${msg}` }] };
-}
+import { ok, fail } from "./result.js";
 
 const workspaceArg = z
   .string()
   .min(1)
-  .describe("Name of a registered workspace (see list_workspaces).");
+  .describe("Workspace name (list_workspaces).");
 
 const pathArg = z
   .string()
   .describe(
-    "Path relative to the workspace root. Use '' or omit to mean the root.",
+    "Path relative to the workspace root; '' = root.",
   );
 
 function detectMime(file: string): string {
@@ -74,14 +55,14 @@ export function registerFilesystemTools(
     {
       title: "Register a workspace directory",
       description:
-        "Adds a directory as a named workspace the model can read/write inside. Path must be absolute and existing. Some system paths are refused unless force=true.",
+      "Register an absolute, existing directory as a named workspace the model may read/write.",
       inputSchema: {
         name: z
           .string()
           .min(1)
           .max(50)
           .describe(
-            "Short name used by other tools. Letters/digits/underscore/hyphen, starts with letter/digit.",
+            "Short name: letters, digits, _ or -.",
           ),
         path: z.string().min(1).describe("Absolute filesystem path."),
         description: z.string().optional(),
@@ -90,7 +71,7 @@ export function registerFilesystemTools(
           .optional()
           .default(false)
           .describe(
-            "Bypass the safety check for system folders. Use only if you really mean it.",
+            "Allow system folders.",
           ),
       },
     },
@@ -195,7 +176,8 @@ export function registerFilesystemTools(
     "read_text_file",
     {
       title: "Read a text file",
-      description: "Reads a file from a workspace as text.",
+      description:
+      "Read a workspace file as text.",
       inputSchema: {
         workspace: workspaceArg,
         path: pathArg,
@@ -210,7 +192,7 @@ export function registerFilesystemTools(
           .max(2_000_000)
           .optional()
           .default(1_000_000)
-          .describe("Refuses to read files larger than this. Default 1 MB."),
+          .describe("Size limit; default 1 MB."),
       },
     },
     async ({ workspace, path: p, encoding, max_bytes }) => {
@@ -243,7 +225,7 @@ export function registerFilesystemTools(
     {
       title: "Read a file as base64",
       description:
-        "Reads a binary file (e.g. image) and returns base64. Useful before import_image_to_figma when you just want to inspect.",
+      "Read a workspace file as base64.",
       inputSchema: {
         workspace: workspaceArg,
         path: pathArg,
@@ -286,7 +268,7 @@ export function registerFilesystemTools(
     {
       title: "Write a text file",
       description:
-        "Writes content to a file inside a workspace. Parent directories are created automatically. Refuses to overwrite existing files unless overwrite=true.",
+      "Write a text file (creates parent dirs). Refuses to overwrite unless overwrite=true.",
       inputSchema: {
         workspace: workspaceArg,
         path: pathArg,
@@ -344,7 +326,7 @@ export function registerFilesystemTools(
     {
       title: "Move or rename a path within a workspace",
       description:
-        "Renames or moves a file/folder within the same workspace. Source and target paths are both workspace-relative.",
+      "Rename/move within the same workspace.",
       inputSchema: {
         workspace: workspaceArg,
         from: pathArg,
@@ -380,7 +362,7 @@ export function registerFilesystemTools(
     {
       title: "Delete a file or directory",
       description:
-        "Deletes a file or empty directory. Pass recursive=true to delete a non-empty directory.",
+      "Delete a file or directory (recursive=true for non-empty).",
       inputSchema: {
         workspace: workspaceArg,
         path: pathArg,
@@ -421,7 +403,7 @@ export function registerFilesystemTools(
     {
       title: "Import an image from a workspace onto the Figma canvas",
       description:
-        "Reads a PNG/JPG/GIF/WEBP file from a workspace, ships it to the plugin, and places it as a rectangle with an image fill. The image's natural size is used unless width/height are specified.",
+      "Place a PNG/JPG/GIF/WEBP from a workspace on the canvas as a rectangle with an image fill (natural size unless width/height given).",
       inputSchema: {
         workspace: workspaceArg,
         path: pathArg,

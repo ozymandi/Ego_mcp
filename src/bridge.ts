@@ -2,6 +2,18 @@ import { WebSocket } from "ws";
 import { randomUUID } from "node:crypto";
 import type { RequestType } from "./protocol.js";
 
+/** Error raised inside the Figma plugin, with the plugin's diagnosis attached. */
+export class PluginError extends Error {
+  constructor(
+    message: string,
+    public readonly hint?: string,
+    public readonly safeToRetry?: boolean,
+  ) {
+    super(message);
+    this.name = "PluginError";
+  }
+}
+
 interface Pending {
   resolve: (value: unknown) => void;
   reject: (err: Error) => void;
@@ -53,7 +65,14 @@ export class PluginBridge {
     });
 
     ws.on("message", (raw) => {
-      let msg: { id?: string; ok?: boolean; result?: unknown; error?: string };
+      let msg: {
+        id?: string;
+        ok?: boolean;
+        result?: unknown;
+        error?: string;
+        hint?: string;
+        safe_to_retry?: boolean;
+      };
       try {
         msg = JSON.parse(raw.toString());
       } catch {
@@ -65,7 +84,7 @@ export class PluginBridge {
       clearTimeout(p.timer);
       this.pending.delete(msg.id);
       if (msg.ok) p.resolve(msg.result);
-      else p.reject(new Error(msg.error ?? "Plugin returned an error"));
+      else p.reject(new PluginError(msg.error ?? "Plugin returned an error", msg.hint, msg.safe_to_retry));
     });
 
     ws.on("close", () => {

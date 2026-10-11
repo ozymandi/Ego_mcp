@@ -3,26 +3,7 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { PluginBridge } from "./bridge.js";
 import { J } from "./canvas-helpers.js";
 
-type ToolResult = {
-  content: { type: "text"; text: string }[];
-  isError?: boolean;
-};
-
-function ok(data: unknown): ToolResult {
-  return {
-    content: [
-      {
-        type: "text",
-        text: typeof data === "string" ? data : JSON.stringify(data, null, 2),
-      },
-    ],
-  };
-}
-
-function fail(err: unknown): ToolResult {
-  const msg = err instanceof Error ? err.message : String(err);
-  return { isError: true, content: [{ type: "text", text: `Error: ${msg}` }] };
-}
+import { ok, fail } from "./result.js";
 
 // ---- Mermaid (flowchart subset) parser ----------------------------------
 
@@ -341,7 +322,7 @@ export function registerDiagramTools(
     {
       title: "Draw a flowchart on the Figma canvas",
       description:
-        "Builds boxes and connectors for the given nodes/edges. Layout is layered (BFS from sources). Direction TD = top-down (default), LR = left-right.",
+      "Draw boxes + connectors from nodes[] and edges[] with a layered layout. direction TD (default) or LR.",
       inputSchema: {
         nodes: z
           .array(
@@ -365,7 +346,7 @@ export function registerDiagramTools(
         origin: z
           .object({ x: z.number(), y: z.number() })
           .optional()
-          .describe("Canvas position for the diagram's center axis."),
+          .describe("Center of the diagram on the canvas."),
         node_width: z.number().positive().optional(),
         node_height: z.number().positive().optional(),
         level_spacing: z.number().positive().optional(),
@@ -388,7 +369,7 @@ export function registerDiagramTools(
     {
       title: "Render simple Mermaid flowchart on the canvas",
       description:
-        "Parses a Mermaid `flowchart TD|LR|...` block (nodes A[label]/A(label)/A((label))/A{label}; edges A-->B and A--label-->B) and renders it via create_flowchart. Subgraphs and class definitions are not supported.",
+      "Render a Mermaid `flowchart TD|LR` (nodes A[label] A(label) A((label)) A{label}; edges A-->B, A--text-->B). No subgraphs/classes.",
       inputSchema: {
         mermaid: z.string().min(1),
         origin: z

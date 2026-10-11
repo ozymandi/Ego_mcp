@@ -10,41 +10,19 @@ import {
   summaryReturn,
 } from "./canvas-helpers.js";
 
-type ToolResult = {
-  content: { type: "text"; text: string }[];
-  isError?: boolean;
-};
-
-function ok(data: unknown): ToolResult {
-  return {
-    content: [
-      {
-        type: "text",
-        text: typeof data === "string" ? data : JSON.stringify(data, null, 2),
-      },
-    ],
-  };
-}
-
-function fail(err: unknown): ToolResult {
-  const msg = err instanceof Error ? err.message : String(err);
-  return {
-    isError: true,
-    content: [{ type: "text", text: `Error: ${msg}` }],
-  };
-}
+import { ok, fail } from "./result.js";
 
 const colorArg = z
   .string()
-  .describe("Hex color like '#0d99ff' or '#0d99ffcc' (with alpha).");
+  .describe("Hex, e.g. #0d99ff or #0d99ffcc (alpha).");
 
 const parentArg = z
   .string()
   .min(1)
   .optional()
-  .describe("Optional parent node id. Defaults to the current page.");
+  .describe("Parent node id; default: current page.");
 
-const nodeIdArg = z.string().min(1).describe("Figma node id (e.g. '12:345').");
+const nodeIdArg = z.string().min(1).describe("Node id, e.g. 12:345.");
 
 const direction = z.enum(["HORIZONTAL", "VERTICAL", "NONE"]);
 
@@ -62,7 +40,7 @@ export function registerCanvasTools(
     {
       title: "Create a frame",
       description:
-        "Creates an empty frame at (x, y) with the given size. Appends to parent_id or current page.",
+      "Empty frame at x,y with width/height.",
       inputSchema: {
         x: z.number(),
         y: z.number(),
@@ -94,7 +72,7 @@ export function registerCanvasTools(
     {
       title: "Create a rectangle",
       description:
-        "Creates a rectangle. Optional fill (hex). Appends to parent_id or current page.",
+      "Rectangle with optional solid fill.",
       inputSchema: {
         x: z.number(),
         y: z.number(),
@@ -130,7 +108,8 @@ export function registerCanvasTools(
     "create_ellipse",
     {
       title: "Create an ellipse",
-      description: "Creates an ellipse/circle. Optional fill (hex).",
+      description:
+      "Ellipse/circle with optional solid fill.",
       inputSchema: {
         x: z.number(),
         y: z.number(),
@@ -167,7 +146,7 @@ export function registerCanvasTools(
     {
       title: "Create a text node",
       description:
-        "Creates a text node. Loads the requested font (defaults to Inter Regular) before setting characters.",
+      "Text node. Loads the font first (default Inter Regular; falls back to it if the font is missing).",
       inputSchema: {
         x: z.number(),
         y: z.number(),
@@ -177,7 +156,7 @@ export function registerCanvasTools(
         font_style: z
           .string()
           .optional()
-          .describe("e.g. 'Regular', 'Bold', 'Medium'. Default 'Regular'."),
+          .describe("Regular | Bold | Medium | ... Default Regular."),
         color: colorArg.optional(),
         name: z.string().optional(),
         parent_id: parentArg,
@@ -232,7 +211,7 @@ export function registerCanvasTools(
     {
       title: "Create a line",
       description:
-        "Creates a line segment from (x1,y1) to (x2,y2). Optional stroke color and weight.",
+      "Line from (x1,y1) to (x2,y2).",
       inputSchema: {
         x1: z.number(),
         y1: z.number(),
@@ -282,7 +261,7 @@ export function registerCanvasTools(
     {
       title: "Clone a node",
       description:
-        "Duplicates a node and offsets the clone by 20px so it doesn't overlap exactly.",
+      "Duplicate a node, offset 20px.",
       inputSchema: { node_id: nodeIdArg },
     },
     async ({ node_id }) => {
@@ -307,7 +286,8 @@ export function registerCanvasTools(
     "move_node",
     {
       title: "Move a node",
-      description: "Sets the absolute x/y of a node.",
+      description:
+      "Set absolute x/y.",
       inputSchema: { node_id: nodeIdArg, x: z.number(), y: z.number() },
     },
     async ({ node_id, x, y }) => {
@@ -324,7 +304,8 @@ export function registerCanvasTools(
     "resize_node",
     {
       title: "Resize a node",
-      description: "Resizes a node to the given width/height.",
+      description:
+      "Set width/height.",
       inputSchema: {
         node_id: nodeIdArg,
         width: z.number().positive(),
@@ -345,7 +326,8 @@ export function registerCanvasTools(
     "set_fill",
     {
       title: "Set node fill",
-      description: "Replaces a node's fills with a single solid color.",
+      description:
+      "Replace fills with one solid color.",
       inputSchema: {
         node_id: nodeIdArg,
         color: colorArg,
@@ -354,7 +336,7 @@ export function registerCanvasTools(
           .min(0)
           .max(1)
           .optional()
-          .describe("Overrides the alpha channel of `color` if provided."),
+          .describe("0-1; overrides the hex alpha."),
       },
     },
     async ({ node_id, color, opacity }) => {
@@ -376,7 +358,8 @@ export function registerCanvasTools(
     "set_stroke",
     {
       title: "Set node stroke",
-      description: "Replaces a node's strokes with a single solid color. Optional weight.",
+      description:
+      "Replace strokes with one solid color; optional weight.",
       inputSchema: {
         node_id: nodeIdArg,
         color: colorArg,
@@ -499,16 +482,16 @@ export function registerCanvasTools(
     {
       title: "Find nodes on the current page",
       description:
-        "Walks the current page tree and returns nodes matching the optional name pattern (case-insensitive regex) and/or type.",
+      "Search the current page by name regex and/or type. Returns id, name, type.",
       inputSchema: {
         name_pattern: z
           .string()
           .optional()
-          .describe("Case-insensitive regex tested against each node's name."),
+          .describe("Case-insensitive regex on node name."),
         type: z
           .string()
           .optional()
-          .describe("Figma node type, e.g. 'FRAME', 'TEXT', 'RECTANGLE'."),
+          .describe("FRAME | TEXT | RECTANGLE | INSTANCE | ..."),
         limit: z.number().int().positive().max(500).optional().default(50),
       },
     },
@@ -578,7 +561,7 @@ export function registerCanvasTools(
     {
       title: "Set auto-layout on a frame",
       description:
-        "Enables or updates auto-layout on a frame. direction='NONE' disables it.",
+      "Enable/update auto-layout on a frame; direction NONE disables.",
       inputSchema: {
         node_id: nodeIdArg,
         direction,
@@ -587,7 +570,7 @@ export function registerCanvasTools(
           .number()
           .min(0)
           .optional()
-          .describe("Uniform padding for all four sides."),
+          .describe("Uniform padding."),
       },
     },
     async ({ node_id, direction, item_spacing, padding }) => {

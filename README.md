@@ -2,9 +2,18 @@
 
 MCP server that connects **Gemma 4** running in **LM Studio** to **Figma**.
 
+Works with any MCP client. Tested targets, in priority order: **Hermes Agent**
+with local models (Qwen3.8 27B, Gemma 4) via LM Studio, **Claude Code** and
+**Codex** with hosted models, and LM Studio's own chat.
+
 - Phase 1 — REST read tools + posting comments. ✅
+- Phase 2 — Variables and library REST tools. ✅
 - Phase 3 — Figma plugin + WebSocket bridge, `use_figma` and live canvas tools. ✅
-- Phases 2, 4–6 (planned): Variables/Libraries, Code Connect, design-system search, diagrams.
+- Phase 4 — Canvas write helpers. ✅
+- Phase 5 — Code Connect tools. ✅
+- Phase 6 — Design system search, diagrams, FigJam. ✅
+- Phase 7 — Sandboxed filesystem workspaces + image import. ✅
+- Agent skill (`skills/figma-mcp/`) for Hermes Agent / Claude Code / Codex. ✅
 
 ## Tools
 
@@ -12,9 +21,9 @@ MCP server that connects **Gemma 4** running in **LM Studio** to **Figma**.
 | Tool | Purpose |
 |------|---------|
 | `whoami` | Current Figma user |
-| `get_file` | Full file tree |
-| `get_metadata` | Top-level structure (depth=1) |
-| `get_node` | Subtree for specific node IDs |
+| `get_file` | Whole document as a compact outline (`format=raw` for JSON) |
+| `get_metadata` | Pages + top-level frames outline (depth=2) |
+| `get_node` | Subtree outline for specific node IDs (`format=raw` for JSON) |
 | `get_components` | All components in a file |
 | `get_styles` | All styles in a file |
 | `get_comments` | Read comments |
@@ -25,10 +34,10 @@ MCP server that connects **Gemma 4** running in **LM Studio** to **Figma**.
 | Tool | Purpose |
 |------|---------|
 | `bridge_status` | Whether the companion plugin is connected |
-| `use_figma` | Execute a JS snippet inside the plugin; `figma`, `selection`, `currentPage` in scope |
+| `use_figma` | Execute a JS snippet inside the plugin; `figma`, `selection`, `currentPage` plus helpers `query`, `set`, `createAutoLayout`, `loadFontsFor`, `hex`, `solid` in scope. Returns `created_ids`/`changed_ids`; `screenshot: true` adds a PNG; errors carry a hint and `safe_to_retry` |
 | `get_selection` | Summary of selected nodes |
 | `get_current_page` | Current page + selection |
-| `get_screenshot` | Saves PNG/JPG/SVG to `./screenshots/` and embeds an image content block |
+| `get_screenshot` | Saves PNG/JPG/SVG to `./screenshots/` and embeds the image; longest side capped by `max_px` (1024); unchanged pixels return a note instead of a second image |
 
 ### Variables & libraries (phase 2)
 | Tool | Purpose |
@@ -200,7 +209,88 @@ You should see:
 Leave the terminal open. The MCP server (spawned by LM Studio) and the
 Figma plugin will both connect to it.
 
-### 4. Wire up LM Studio
+### 4. Agent skill (recommended for every client)
+
+`skills/figma-mcp/SKILL.md` teaches the model how to use this server: when to
+call which tool, the `use_figma` rules, error recovery, and worked snippets.
+It follows the common `SKILL.md` format (YAML frontmatter with `name` +
+`description`), so the same folder works in Hermes Agent, Claude Code and
+Codex. The full tool reference in `references/tools.md` is generated from the
+code — regenerate it after adding or changing tools:
+
+```powershell
+npm run build:server
+npm run docs:tools
+```
+
+#### Hermes Agent
+
+Add the server and the skill folder to `~/.hermes/config.yaml`. Name the server
+`figma` — the skill is gated on the `mcp-figma` toolset, and tool names become
+`mcp_figma_<tool>`.
+
+```yaml
+mcp_servers:
+  figma:
+    command: node
+    args: ["E:/Projects/gemma 4 figma mcp/dist/server.js"]
+    lazy: true
+    tools:
+      include: [bridge_status, get_current_page, get_selection, find_nodes, get_screenshot,
+                use_figma, create_frame, create_rectangle, create_ellipse, create_text, create_line,
+                clone_node, move_node, resize_node, set_fill, set_stroke, set_text, rename_node,
+                delete_nodes, set_selection, group_nodes, set_auto_layout]
+
+skills:
+  external_dirs:
+    - "E:/Projects/gemma 4 figma mcp/skills"
+```
+
+Hermes puts every tool schema into the model's context, so pick a profile that
+matches the job. Local 27B-class models work best with `core`.
+
+| Profile | `tools.include` |
+|---------|-----------------|
+| `core` (canvas only, ~22 tools) | the list above |
+| `design` (core + reading files, variables, design system, images) | core + `get_metadata, get_node, get_components, get_styles, get_image, get_local_variables, get_file_component_sets, index_design_system, search_design_system, list_workspaces, list_dir, read_text_file, write_text_file, import_image_to_figma, create_flowchart, mermaid_to_canvas, create_sticky, create_connector` |
+| `full` | omit the `tools:` block |
+
+Leave `supports_parallel_tool_calls` unset: canvas writes must run one at a time.
+Keep `help` out of the include list — the skill replaces it.
+
+#### Claude Code
+
+Register the server in `.mcp.json` (project) or `~/.claude.json` (user):
+
+```json
+{
+  "mcpServers": {
+    "figma": {
+      "command": "node",
+      "args": ["E:/Projects/gemma 4 figma mcp/dist/server.js"]
+    }
+  }
+}
+```
+
+Copy or symlink `skills/figma-mcp` to `.claude/skills/figma-mcp` (project) or
+`~/.claude/skills/figma-mcp` (user). Claude Code defers large MCP tool lists and
+loads schemas on demand, so the `full` tool set is fine here.
+
+#### Codex
+
+Add to `~/.codex/config.toml`:
+
+```toml
+[mcp_servers.figma]
+command = "node"
+args = ["E:/Projects/gemma 4 figma mcp/dist/server.js"]
+```
+
+Point the project's `AGENTS.md` at `skills/figma-mcp/SKILL.md` (or copy the
+folder into Codex's skills directory if your version supports skills).
+
+### 5. Wire up LM Studio (chat)
 
 LM Studio supports MCP servers via `mcp.json` (Program → **Integrations** → **Edit mcp.json**).
 
@@ -222,7 +312,7 @@ The server reads `FIGMA_TOKEN` from the `.env` file next to itself, so you don't
 
 Reload LM Studio. Pick a model that supports tool calling (Gemma 4 instruct variants do), open chat, and you should see the `gemma-figma` tools available.
 
-### 5. Install the Figma plugin
+### 6. Install the Figma plugin
 
 The plugin connects to the bridge daemon over WebSocket.
 
@@ -247,7 +337,7 @@ figma.currentPage.appendChild(rect);
 return { created: rect.id };
 ```
 
-### 6. Sanity check (without LM Studio)
+### 7. Sanity check (without LM Studio)
 
 In one terminal:
 
@@ -286,7 +376,8 @@ would see constant reconnect cycles.
 
 ## Notes
 
-- Figma REST responses can be large. Prefer `get_metadata` first, then `get_node` for specific subtrees, rather than `get_file` on every call.
+- REST reads return a compact outline by default (one line per node: type, name, id, bounds, layout, fills, text). Pass `format: "raw"` for the full JSON. Every text result is capped at `FIGMA_MCP_MAX_RESULT_CHARS` (20 000) with a `…[truncated]` marker.
+- Prefer `get_metadata` first, then `get_node` for specific subtrees, rather than `get_file` on every call.
 - `get_image` (REST) returns S3 URLs that expire ~30 days after generation. `get_screenshot` (plugin) returns inline base64.
 - The daemon allows only one connected plugin. If you open the plugin in two Figma windows, only the newest connection is kept.
 - Variables and Libraries (phase 2) require Enterprise-tier plan for full coverage.

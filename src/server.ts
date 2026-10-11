@@ -267,13 +267,26 @@ server.registerTool(
     inputSchema: {},
   },
   async () =>
-    run(async () => ({
-      daemon_url: bridgeUrl,
-      mcp_to_daemon: bridge.isConnected() ? "connected" : "disconnected",
-      hint: bridge.isConnected()
-        ? "Bridge daemon is reachable. Call use_figma / get_selection / get_screenshot to exercise the plugin."
-        : `Bridge daemon not reachable at ${bridgeUrl}. Start it: 'npm run bridge' in the project directory.`,
-    })),
+    run(async () => {
+      if (!bridge.isConnected()) {
+        return {
+          daemon: "unreachable",
+          daemon_url: bridgeUrl,
+          hint: `Start the bridge daemon: start-bridge.bat or 'npm run bridge' in the project directory.`,
+        };
+      }
+      try {
+        const ping = (await bridge.send("ping", undefined, 5_000)) as Record<string, unknown>;
+        return { daemon: "connected", plugin: "connected", ...ping };
+      } catch (err) {
+        return {
+          daemon: "connected",
+          plugin: "disconnected",
+          hint: "Open the plugin in Figma desktop: Plugins > Development > Gemma 4 MCP Bridge, then press Reconnect.",
+          error: err instanceof Error ? err.message : String(err),
+        };
+      }
+    }),
 );
 
 server.registerTool(

@@ -15,3 +15,7 @@ screenshots/
 .cache/
 .workspaces.json
 daemon.log
+
+# generated at plugin build time
+plugin/src/build-info.ts
+.eval/

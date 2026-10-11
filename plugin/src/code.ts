@@ -36,6 +36,8 @@ interface ExecPayload {
   max_created?: number;
 }
 
+import { BUILD } from "./build-info";
+
 figma.showUI(__html__, { width: 320, height: 240, title: "Gemma 4 MCP" });
 
 figma.ui.onmessage = async (msg: UiToSandbox) => {
@@ -68,7 +70,13 @@ function reply(response: WireResponse) {
 async function handle(req: WireRequest): Promise<unknown> {
   switch (req.type) {
     case "ping":
-      return { pong: true, fileName: figma.root.name };
+      return {
+        pong: true,
+        fileName: figma.root.name,
+        editorType: figma.editorType,
+        currentPage: { id: figma.currentPage.id, name: figma.currentPage.name },
+        build: BUILD,
+      };
 
     case "get_current_page":
       return summarizePage(figma.currentPage);
@@ -464,7 +472,10 @@ figma.on("currentpagechange", watchCurrentPage);
 
 const CREATE_RE = /^(create(?!Image$)|group|union|subtract|intersect|exclude|flatten|combineAsVariants|ungroup)/;
 
-function trackingProxy(created: Set<string>): PluginAPI {
+function trackingApi(created: Set<string>): PluginAPI {
+  // A Proxy over `figma` trips invariant checks on its frozen properties, so
+  // build a plain forwarding object instead: methods bound to figma (create*
+  // ones wrapped to note their result), everything else as live accessors.
   const note = (v: unknown) => {
     if (!v) return;
     if (Array.isArray(v)) {
@@ -480,21 +491,38 @@ function trackingProxy(created: Set<string>): PluginAPI {
       }
     }
   };
-  return new Proxy(figma, {
-    get(target, prop) {
-      const v = Reflect.get(target, prop);
-      if (typeof v !== "function") return v;
-      const fn = v as (...a: unknown[]) => unknown;
-      if (typeof prop === "string" && CREATE_RE.test(prop)) {
-        return (...args: unknown[]) => {
-          const r = fn.apply(target, args);
-          note(r);
-          return r;
-        };
+  const target = figma as unknown as Record<string, unknown>;
+  const api: Record<string, unknown> = {};
+  const seen = new Set<string>();
+  let proto: object | null = figma;
+  while (proto && proto !== Object.prototype) {
+    for (const k of Object.getOwnPropertyNames(proto)) {
+      if (seen.has(k) || k === "constructor") continue;
+      seen.add(k);
+      const d = Object.getOwnPropertyDescriptor(proto, k);
+      if (!d) continue;
+      if (typeof d.value === "function") {
+        const fn = d.value as (...a: unknown[]) => unknown;
+        api[k] = CREATE_RE.test(k)
+          ? (...args: unknown[]) => {
+              const r = fn.apply(figma, args);
+              note(r);
+              return r;
+            }
+          : fn.bind(figma);
+      } else {
+        Object.defineProperty(api, k, {
+          enumerable: true,
+          get: () => target[k],
+          set: (v: unknown) => {
+            target[k] = v;
+          },
+        });
       }
-      return fn.bind(target);
-    },
-  });
+    }
+    proto = Object.getPrototypeOf(proto);
+  }
+  return api as unknown as PluginAPI;
 }
 
 async function settleChanges(start: number): Promise<void> {
@@ -517,7 +545,7 @@ async function execCode(payload: ExecPayload) {
   const changed = new Set<string>();
   const deleted = new Set<string>();
   const start = Date.now();
-  const api = track ? trackingProxy(created) : figma;
+  const api = track ? trackingApi(created) : figma;
 
   let result: unknown;
   try {

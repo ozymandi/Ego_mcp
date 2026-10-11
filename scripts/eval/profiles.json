@@ -1,0 +1,19 @@
+{
+  "core": [
+    "bridge_status", "get_current_page", "get_selection", "find_nodes", "get_screenshot",
+    "use_figma", "create_frame", "create_rectangle", "create_ellipse", "create_text", "create_line",
+    "clone_node", "move_node", "resize_node", "set_fill", "set_stroke", "set_text", "rename_node",
+    "delete_nodes", "set_selection", "group_nodes", "set_auto_layout"
+  ],
+  "design": [
+    "bridge_status", "get_current_page", "get_selection", "find_nodes", "get_screenshot",
+    "use_figma", "create_frame", "create_rectangle", "create_ellipse", "create_text", "create_line",
+    "clone_node", "move_node", "resize_node", "set_fill", "set_stroke", "set_text", "rename_node",
+    "delete_nodes", "set_selection", "group_nodes", "set_auto_layout",
+    "get_metadata", "get_node", "get_components", "get_styles", "get_image", "get_local_variables",
+    "get_file_component_sets", "index_design_system", "search_design_system",
+    "list_workspaces", "list_dir", "read_text_file", "write_text_file", "import_image_to_figma",
+    "create_flowchart", "mermaid_to_canvas", "create_sticky", "create_connector"
+  ],
+  "full": null
+}

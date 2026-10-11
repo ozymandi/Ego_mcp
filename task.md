@@ -35,7 +35,11 @@ Reach feature parity with the official Figma Dev Mode MCP that Claude Code uses,
 
 **Done (2026-10-11, code only):** step 3 — P2 `use_figma` hardening in `plugin/src/code.ts`: helpers `query/set/createAutoLayout/loadFontsFor/hex/solid` in snippet scope; 13 error diagnoses -> `hint` + `safe_to_retry` carried over the wire (`protocol.ts`, `bridge.ts` PluginError, `result.ts`); `documentchange`-based `created_ids/changed_ids/deleted_ids` (best effort, 80 ms settle); `screenshot: true` on use_figma returns PNGs of top-level created nodes; soft limit 2000 created nodes/call. Skill + help + README updated. Built and typechecked. **Not verified live**: `npm run smoke:plugin` (scripts/smoke-plugin.mjs) exercises all of it against the open Figma file but needs the NEW plugin build running in Figma, and it creates/deletes test frames, so it must not run during someone else's session.
 
-**Next step:** user re-runs the plugin in Figma (Plugins > Development > Gemma 4 MCP Bridge) and restarts the MCP in Hermes, then `npm run smoke:plugin`. After that: step 4 (eval harness) and step 5 (instances, variables, get_node_spec).
+**2026-10-11, later:** steps 1-3 committed and pushed (7b22a83, 4ebf6c1, 4f9cd4a). First live smoke run: helpers and query PASS; id tracking and two diagnoses FAILED -> fixed (Proxy over figma for create*, per-page `nodechange` buffer with adaptive settle, regex fixes). Plugin rebuilt; `bridge_status` now pings the plugin and reports file, editorType, page and build stamp (plugin/scripts/stamp.mjs). Second smoke run still pending: plugin was disconnected at the time.
+
+**Done (code only):** step 4 — `scripts/eval/` (run-eval.mjs, cases.json x30, profiles.json), `npm run eval`. Not run yet: LM Studio API on :1234 was not reachable.
+
+**Next step:** (a) user re-runs the plugin -> `npm run smoke:plugin`; (b) when the LM Studio server is on, `npm run eval -- --profile core` and `--profile full --skill` for Qwen3.8 27B and Gemma 4; (c) step 5: instances/components, variables, get_node_spec.
 
 **Open questions:** which local models to target first (Gemma 4 26B-A4B / 31B, Qwen3.8 27B). Models have vision — screenshots stay inline (decided 2026-10-11). Client priority (2026-10-11): 1) **Hermes Agent** over LM Studio (local models), 2) Claude Code + Codex (big LLMs), 3) LM Studio chat (uncertain). Hermes — it accumulates skills, so the repo should ship a seed SKILL.md (proposal P2.0) and README `tools.include` profiles instead of in-server profiles.
 

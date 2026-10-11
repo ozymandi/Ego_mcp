@@ -353,6 +353,23 @@ npm run dev
 
 The MCP server prints `[bridge-client] connected to ws://localhost:7575` and `[gemma-figma-mcp] ready on stdio`. Press Ctrl+C in either terminal to stop. (Stdio servers are usually exercised by an MCP client, not directly.)
 
+## Evaluating local models
+
+`scripts/eval/` scores how well a model picks tools from this server. Each
+prompt in `cases.json` is sent to an OpenAI-compatible endpoint (LM Studio's
+local server by default) with the real tool list, and the first tool call is
+checked for the expected tool and arguments. Figma is never touched.
+
+```powershell
+npm run eval -- --profile core                 # 22 tools, first loaded model
+npm run eval -- --profile full --skill         # all tools, SKILL.md as system prompt
+npm run eval -- --model gemma-4-26b --runs 3   # average over repeated runs
+```
+
+Profiles live in `scripts/eval/profiles.json` (the same lists as the Hermes
+`tools.include` examples above). Results go to `.eval/*.json` with the
+average prompt-token count, which shows what each profile costs in context.
+
 ## Architecture
 
 ```

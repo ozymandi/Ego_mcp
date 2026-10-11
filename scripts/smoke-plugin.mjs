@@ -96,13 +96,10 @@ const r3 = await exec(`
 check("changed_ids tracked", r3.ok && (r3.result.changed_ids ?? []).includes(ids.rect) && !r3.result.created_ids, JSON.stringify(r3.result));
 
 // 4. error diagnostics
-// Inter Regular was loaded by an earlier snippet and stays loaded for the
-// plugin session, so use a style nothing has loaded yet.
+// Fonts stay loaded for the whole plugin session, so provoking the real
+// error is unreliable here; throw Figma's own message to test the mapping.
 const r4 = await exec(`
-  const t = figma.createText();
-  t.fontName = { family: 'Inter', style: 'Extra Bold Italic' };
-  t.characters = 'no font loaded';
-  return t.id;
+  throw new Error('Cannot write to node with unloaded font "Inter Bold". Please call figma.loadFontAsync({ family: "Inter", style: "Bold" }) and await the returned promise first.');
 `);
 check("font error has hint + safe_to_retry", !r4.ok && /font/i.test(r4.hint ?? "") && r4.safe_to_retry === true, `${r4.error} | ${r4.hint}`);
 

@@ -9,6 +9,14 @@ Copy the messages in order. Lines starting with `agent:` show the tools you
 should see Hermes call; if it does something else, correct it in the next
 message.
 
+> **Outcome of the live run (2026-10-11, Qwen3.8 27B):** the file came out
+> structurally complete and visually generic; the designer did not accept
+> it. The messages below still show the mechanics (tokens, variant sets,
+> organisms, pages, critique), but for the design step itself use a hosted
+> model, or give the local model a reference screenshot per page
+> ([workflow 04](../04-build-from-reference.md)). Details:
+> [hermes-step-by-step.md §10](hermes-step-by-step.md#10-what-the-live-run-showed).
+
 ## Brief (message 0)
 
 ```

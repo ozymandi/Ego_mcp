@@ -6,12 +6,11 @@ metadata:
   hermes:
     tags: [figma, design, mcp, canvas]
     category: design
-    requires_toolsets: [mcp-figma]
 ---
 
 # Figma via gemma-figma-mcp
 
-Tool names below are bare (`get_screenshot`). Your client may prefix them (`mcp_figma_get_screenshot` in Hermes, `mcp__figma__get_screenshot` in Claude Code).
+Tool names below are bare (`get_screenshot`). Your client prefixes them with the server name from its config (`mcp__gemma_figma__get_screenshot` in Hermes when the server is registered as `gemma_figma`, `mcp__figma__get_screenshot` in Claude Code).
 
 ## 1. Before you start
 
@@ -26,12 +25,22 @@ Tool names below are bare (`get_screenshot`). Your client may prefix them (`mcp_
 2. **Prefer structured tools** (`create_frame`, `create_text`, `set_fill`, `set_auto_layout`, `create_instance`, `insert_icon`, `bind_variable`, …) over `use_figma`. They validate inputs and load fonts for you. Use `use_figma` only when no structured tool covers the need (constraints, effects, bulk edits, unusual node types).
 2a. **Icons are never drawn from lines or text.** Use `insert_icon` (Lucide) or `create_from_svg`. If a design system has icon components, `create_instance` them instead.
 2b. **Reuse the design system.** Before building a button, card, input or nav from scratch, check `list_components` (this file) or `search_design_system` (team library) and place `create_instance`; set its `properties`.
+2c. **Reference image: describe first, build second.** When the user gives a screenshot or a reference frame, first return a numbered structural spec (sections top to bottom, grid, proportions as fractions of the width, type sizes relative to each other, spacing rhythm, what is deliberately empty) and wait for corrections. Build only from the approved spec, with this file's tokens and components; take layout from the reference, never its colors, fonts or copy unless asked. Put the reference on the canvas (`import_image_to_figma`) so you can screenshot it next to the build and compare.
 3. **Build top-down.** Create the container frame, then children with `parent_id`. Apply `set_auto_layout` on the container **before** adding many children when the layout is a stack or row.
-4. **Verify once per batch.** After a group of related writes, take **one** `get_screenshot` of the container. Do not screenshot after every call, and do not repeat a screenshot when nothing changed.
+4. **Verify once per batch.** After a group of related writes, take **one** `get_screenshot` of the container. Do not screenshot after every call, and do not repeat a screenshot when nothing changed. Screenshot frames, not page ids; a frame without a fill exports transparent, so dark content on it looks blank.
 4a. **Critique once per screen.** When a screen or section is built, run `critique_design` on its root, fix every primary finding with the tool it names, run it once more, then screenshot. See `references/critique.md`.
 5. **Fix, don't rebuild.** If the screenshot shows a problem, change the specific node (`move_node`, `resize_node`, `set_text`) rather than deleting and recreating.
-6. **Keep ids.** Every write returns `{ id, name, type }`. Reuse those ids for later calls; do not guess ids and do not re-find by name if you already have the id.
+6. **Keep ids.** Every write returns `{ id, name, type }`. Reuse those ids for later calls; do not guess ids and do not re-find by name if you already have the id. After a context compaction or a long pause, confirm an old id with one `get_node_spec` before writing to it; an id that now names a different node is worse than one lookup.
 7. **Stop when done.** Report what was created with node ids and one final screenshot path.
+
+## 2b. House rules (the designer's standing preferences)
+
+1. **Native layout only.** Spacing is `itemSpacing`, padding, `layoutGrow`/FILL and named HUG wrapper frames. Never invisible spacer rectangles, placeholder nodes or empty frames used as gaps.
+2. **Nothing overflows an auto-layout frame** except children with `layoutPositioning = 'ABSOLUTE'`. If a child does not fit, make the parent HUG on that axis (and its ancestors, up to the root) instead of leaving it clipped.
+3. **One component family per page**, named `Components / <Family>`; each variant is its own COMPONENT with the exact variant name, combined with `combine_as_variants` when the family is complete.
+4. **Pages are built from instances.** Where an organism or atom exists, place `create_instance`, never a plain copy of its look.
+5. **Replies for design-system work are ids**: page + node ids per family, no tables, no questions, then one screenshot per family.
+6. **Breakpoints get their own type scale.** A 390 px frame does not reuse the 1440 px display size; ask for or propose the mobile scale (display 56, h2 32, body 16 as a default).
 
 ## 3. Tool map by task
 

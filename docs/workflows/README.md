@@ -1,6 +1,6 @@
 # Workflows
 
-Three end-to-end ways of working with this server. The client pages in
+Four end-to-end ways of working with this server. The client pages in
 [../pipelines/](../pipelines/README.md) tell you how to connect; these pages
 tell you what to ask for, in what order, and what "done" means.
 
@@ -9,6 +9,9 @@ tell you what to ask for, in what order, and what "done" means.
 | **Create from scratch** — brief → tokens → components → one or more screen variants → critique → pick | a new product surface, a landing page, an app screen | [01-create-from-scratch.md](01-create-from-scratch.md) |
 | **Edit a part** — analyse a region, propose changes with reasons, apply after approval, show before/after | an existing design needs a change in one area | [02-edit-and-propose.md](02-edit-and-propose.md) |
 | **Atomize for hand-off** — turn a finished design into tokens, components with variants and a clean spec for frontend | the prototype is final and goes to Framer, Webflow or code | [03-atomize-for-handoff.md](03-atomize-for-handoff.md) |
+| **Build from a reference** — a screenshot or a finished page → structural spec → build with this file's tokens → compare | the composition exists somewhere already; the agent is a local model | [04-build-from-reference.md](04-build-from-reference.md) |
+
+Prompt templates (target, scope, spec, verification, reply; one per workflow; one-line corrections): [../prompt-templates.md](../prompt-templates.md).
 
 Operational guide: [examples/hermes-step-by-step.md](examples/hermes-step-by-step.md) — LM Studio (64k context), Hermes install and config, plugin, first session, daily start.
 
@@ -29,8 +32,14 @@ Conventions shared by all three:
 - **Work on a scratch page** (`set_current_page`) until the designer
   promotes the result.
 
-Profiles: workflow 1 and 3 need `design` (components, variables); workflow
-2 runs on `core` plus `critique_design`.
+Profiles: workflows 1, 3 and 4 need `design` (components, variables,
+`import_image_to_figma`); workflow 2 runs on `core` plus `critique_design`.
+
+Which model for which workflow: a local 27B model (Hermes) carries 2, 3 and
+4 and does not carry 1 from a text brief; the live run that showed this is
+written up in [examples/hermes-step-by-step.md §10](examples/hermes-step-by-step.md#10-what-the-live-run-showed).
+Workflow 1 goes to a hosted model (Claude Code, Codex) or to the designer
+for the first page, which then becomes the reference for workflow 4.
 
 ## Hermes vs LM Studio chat
 

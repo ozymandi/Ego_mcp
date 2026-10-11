@@ -1,9 +1,12 @@
 # Hermes Agent + LM Studio (local models)
 
 The primary pipeline: Hermes Agent (Nous Research) runs the agent loop, LM
-Studio serves a local model, this server exposes Figma. Hermes loads the full
-tool list of the server into every request and loads `SKILL.md` on demand,
-so the profile choice matters here more than anywhere else.
+Studio (or Hermes's bundled llama-server) serves a local model, this server
+exposes Figma. Hermes keeps the tool index in context, fetches a tool's full
+schema when the model picks it, loads `SKILL.md` on demand, and executes
+**one MCP call per model turn**: a plan of twelve edits is twelve round
+trips of 15-20 s each on a 27B model. That turn cost, not the tool list,
+is what shapes the work below.
 
 Tested: Qwen3.8 27B and Gemma 4 31B on an RTX 5090. **Hermes requires a model
 context of at least 64k**, so load models with `--context-length 65536` for
@@ -30,7 +33,7 @@ lms ps                                                     # CONTEXT must say 65
 
 ## 2. Hermes config
 
-`~/.hermes/config.yaml` (secrets go to `~/.hermes/.env`):
+`config.yaml` in Hermes's home (`~/.hermes/` for the CLI install, `%LOCALAPPDATA%\hermes\` for Hermes Desktop on Windows; secrets go to `.env` next to it):
 
 ```yaml
 model:
@@ -38,8 +41,8 @@ model:
   name: qwen/qwen3.8-27b
 
 mcp_servers:
-  figma:                        # keep this name: tools become mcp_figma_<tool>,
-    command: node               # and the skill is gated on the mcp-figma toolset
+  gemma_figma:                  # any name works; tools become mcp__<name>__<tool>
+    command: node
     args: ["E:/Projects/gemma 4 figma mcp/dist/server.js"]
     lazy: true                  # start on first use
     timeout: 120
@@ -48,7 +51,7 @@ mcp_servers:
 
 skills:
   external_dirs:
-    - "E:/Projects/gemma 4 figma mcp/skills"
+    - "E:/Projects/gemma 4 figma mcp/skills"    # required, see "The skill" below
 ```
 
 Set `LM_API_KEY` in `~/.hermes/.env` if the LM Studio server requires a token.
@@ -89,33 +92,72 @@ helpers, and how to recover from errors. Hermes may extend it with its own
 learned skills (`/learn`); keep `skills.write_approval: true` if you want to
 review those.
 
-## 3. Example session
+Two things that silently disable it:
+
+- `skills.external_dirs` does not list the repo's `skills` folder. Hermes
+  then has no Figma skill, the model works from the raw tool descriptions,
+  and after the first long session Hermes writes its own skill
+  (`figma-bridge` in the live run) with whatever the model concluded,
+  including wrong API usage. Check with "Which skills do you have?" and
+  delete a self-written Figma skill if `figma-mcp` is present.
+- An older copy of `SKILL.md` carried `requires_toolsets: [mcp-figma]`,
+  which hides the skill unless the server is registered as `figma`. The
+  gating is gone; pull the repo if your copy still has it.
+
+## 3. What to give a local model
+
+From the live run of the agency example (2026-10-11, Qwen3.8 27B, half a
+day, verdict from the designer: not accepted; details in
+[../workflows/examples/hermes-step-by-step.md](../workflows/examples/hermes-step-by-step.md#10-what-the-live-run-showed)):
+
+| Workflow | Local model through Hermes | Why |
+|----------|----------------------------|-----|
+| [01 create from scratch](../workflows/01-create-from-scratch.md) from a text brief | **no** | the model turns "brutalism, blackletter, acid lime" into one element per word; no composition, no rhythm; the critique passes it because the rules check contrast and spacing, not intent |
+| [04 build from a reference](../workflows/04-build-from-reference.md) | yes | the judgement is in the screenshot; the model describes, you correct, it executes |
+| [02 edit a region](../workflows/02-edit-and-propose.md) | yes | bounded scope, ids known, one or two tool calls per change |
+| [03 atomize for hand-off](../workflows/03-atomize-for-handoff.md) | yes | mechanical: tokens, variant sets, renames, spec files; use the batch tools |
+| replicate a finished page to other pages or to mobile | yes, with a per-breakpoint type scale in the prompt | the first page is the reference |
+
+Creation from a brief belongs to [Claude Code](claude-code.md) or
+[Codex](codex.md) with a hosted model, or to the designer by hand for one
+page that the local model then replicates. Same server, same skill, no config
+change.
+
+Costs to expect with a 27B model at 64k context: 15-20 s per step, a
+75-90 s context compaction every one or two steps once the session passes
+~55k tokens (Hermes compacts at 50% of the window and the model writes the
+summary itself), plugin restarts after a long session. A fresh session per
+page, with the ids you need repeated in the first message, is cheaper than
+one long session. If VRAM allows, load the model with 98304 context to make
+compaction rare.
+
+## 4. Example session
 
 ```
 you:    Is Figma connected?
-hermes: mcp_figma_bridge_status → "Untitled", page "Page 1", plugin build 2026-10-11 …
+hermes: mcp__gemma_figma__bridge_status → "Untitled", page "Page 1", plugin build 2026-10-11 …
 
 you:    Create a card at 100,100 named Card, 320 wide, vertical auto-layout with
         padding 16 and gap 8, white, 12px radius. Inside: bold 18px title "Welcome"
         and 14px gray body "Thanks for joining us."
-hermes: mcp_figma_use_figma (one snippet: createAutoLayout + two texts) → ids
-        mcp_figma_get_screenshot → image
+hermes: mcp__gemma_figma__use_figma (one snippet: createAutoLayout + two texts) → ids
+        mcp__gemma_figma__get_screenshot → image
         "Done: Card (12:34) with title and body."
 
 you:    Add a row of four icons under the title: heart, message-circle, repeat, send,
         24px, #333333, gap 24.
-hermes: mcp_figma_create_frame → mcp_figma_set_auto_layout → mcp_figma_insert_icon ×4
+hermes: mcp__gemma_figma__create_frame → mcp__gemma_figma__set_auto_layout → mcp__gemma_figma__insert_icon ×4
 
 you:    Turn the card into a component and put an instance at 500,100.
-hermes: mcp_figma_create_component → mcp_figma_create_instance
+hermes: mcp__gemma_figma__create_component → mcp__gemma_figma__create_instance
 
 you:    Review the card and fix anything the critique marks as primary.
-hermes: mcp_figma_critique_design {node_id: "12:34"} → 1 primary (low-contrast on the body text)
-        mcp_figma_set_fill {node_id: "12:36", color: "#4b5563"}
-        mcp_figma_critique_design {node_id: "12:34", min_severity: "primary"} → 0
+hermes: mcp__gemma_figma__critique_design {node_id: "12:34"} → 1 primary (low-contrast on the body text)
+        mcp__gemma_figma__set_fill {node_id: "12:36", color: "#4b5563"}
+        mcp__gemma_figma__critique_design {node_id: "12:34", min_severity: "primary"} → 0
 
 you:    Give me the spec of the card so I can build it in React.
-hermes: mcp_figma_get_node_spec → writes the component from the outline
+hermes: mcp__gemma_figma__get_node_spec → writes the component from the outline
 ```
 
 More review examples, the rule list and the Impeccable combination:
@@ -125,7 +167,7 @@ Prompts that need a `design` or `full` profile: anything about variables,
 components in a team library (`search_design_system`), importing an image
 from disk, Mermaid/flowcharts, Code Connect.
 
-## 4. Troubleshooting
+## 5. Troubleshooting
 
 | Symptom | Cause | Fix |
 |---------|-------|-----|
@@ -134,6 +176,9 @@ from disk, Mermaid/flowcharts, Code Connect.
 | `exceed_context_size_error` on the first message | model loaded with 8192 context | `lms unload --all` then `lms load … --context-length 32768` |
 | HTTP 401 from LM Studio | API token required | token into `LM_API_KEY`, or disable the requirement |
 | the model calls `bridge_status` before every action | old skill text | pull the repo; the skill now says "act directly" |
+| "Which skills do you have?" does not list `figma-mcp` | `skills.external_dirs` missing the repo folder, or an old `requires_toolsets` line | fix the config, restart Hermes; delete a self-written `figma-bridge` skill |
+| Hermes freezes for a minute after a tool result, Figma idle | context compaction (log: `conversation_compression`) | wait; start a new session per page; load the model with more context |
+| the model rebuilds a page instead of editing it | prompt without ids and scope | give the root id and "change only these nodes"; see workflow 02 |
 | the model answers in prose instead of calling a tool | output token cap too low for a thinking model | raise Hermes's max output tokens; Qwen/Gemma reason first |
 | screenshots are missing from the reply | model is not multimodal or Hermes vision is off | Qwen3.8 and Gemma 4 are multimodal; check `vision` settings |
 | plugin error about `documentchange` / `loadAllPagesAsync` | an old plugin build | rebuild (`npm run build`) and re-run the plugin; `bridge_status` shows the build stamp |

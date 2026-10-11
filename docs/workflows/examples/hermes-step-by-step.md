@@ -37,9 +37,12 @@ If the picker does not list LM Studio, set it by hand:
 
 ```powershell
 hermes config set model lmstudio/qwen/qwen3.8-27b
-hermes config set LM_BASE_URL http://localhost:1234/v1    # goes to ~/.hermes/.env
+hermes config set LM_BASE_URL http://localhost:1234/v1    # goes to .env in Hermes's home
 hermes config set LM_API_KEY <token-or-anything-if-auth-is-off>
 ```
+
+Hermes's home is `~/.hermes` for the CLI install and `%LOCALAPPDATA%\hermes`
+for Hermes Desktop on Windows (config.yaml, skills, logs/agent.log, backups).
 
 Smoke test with no tools: `hermes --tui`, type `hi`, get an answer, `/exit`.
 
@@ -63,12 +66,12 @@ copy .env.example .env         # paste FIGMA_TOKEN (REST tools only; canvas work
 
 ## 5. Hermes config: server + skill
 
-Edit `%USERPROFILE%\.hermes\config.yaml` (or `hermes config set` for single
+Edit `config.yaml` in Hermes's home (or `hermes config set` for single
 keys). Add:
 
 ```yaml
 mcp_servers:
-  figma:                       # keep this name: tools become mcp_figma_*, skill is gated on mcp-figma
+  gemma_figma:                 # any name works; tools become mcp__<name>__<tool>
     command: node
     args: ["E:/Projects/gemma 4 figma mcp/dist/server.js"]
     timeout: 120
@@ -98,6 +101,14 @@ pure canvas work use the shorter `core` list from the README. Leave
 `lazy` off for the first run so Hermes caches the tool schemas; you may set
 `lazy: true` afterwards.
 
+`skills.external_dirs` is not optional. Without it Hermes has no Figma skill,
+and after the first session it writes its own (`figma-bridge`) from whatever
+the model concluded; the live run below ran on that self-written skill for
+half a day. If both exist, delete the self-written one from
+`<hermes home>\skills`.
+
+Hermes Desktop has no `/reload-mcp`; after a config change restart the app.
+
 Verify:
 
 ```powershell
@@ -117,15 +128,14 @@ hermes --tui
 In the chat:
 
 ```
-/reload-mcp          (only if you edited config while a session was open)
-/tools               → mcp_figma_* entries are listed
-Which skills do you have?   → figma-mcp appears in the list
-Is Figma connected?         → one mcp_figma_bridge_status call: file name, page, plugin build
+/tools               → mcp__gemma_figma__* entries are listed
+Which skills do you have?   → figma-mcp appears in the list (if not: section 5)
+Is Figma connected?         → one mcp__gemma_figma__bridge_status call: file name, page, plugin build
 Create a 200x100 frame named "Hello" at 0,0 and screenshot it.
 ```
 
-The last line should be `mcp_figma_create_frame` then
-`mcp_figma_get_screenshot`, with the PNG shown in the TUI (Qwen3.8 and Gemma 4
+The last line should be `mcp__gemma_figma__create_frame` then
+`mcp__gemma_figma__get_screenshot`, with the PNG shown in the TUI (Qwen3.8 and Gemma 4
 are multimodal; Hermes attaches tool images for vision models). Delete the
 frame: `Delete the frame "Hello"`.
 
@@ -153,7 +163,9 @@ frame: `Delete the frame "Hello"`.
 | You see | It means |
 |---------|----------|
 | Hermes says it loaded the skill `figma-mcp` | the SKILL.md was read; prompts can stay short |
-| `mcp_figma_bridge_status` on every message | old skill text; pull the repo, `/reload-mcp` |
+| `mcp__gemma_figma__bridge_status` on every message | old skill text; pull the repo, restart Hermes |
+| a 60-90 s pause after a tool result, nothing in Figma | context compaction; `agent.log` says `conversation_compression` |
+| the model writes a skill at the end of a session | normal; read it before the next session, delete it if it contradicts `figma-mcp` |
 | "Bridge daemon not reachable" | daemon died; `bridge_status` restarts it; else `start-bridge.bat`, check `daemon.log` |
 | "Figma plugin not connected" | plugin window closed; re-run it, press Reconnect |
 | tool result `…[truncated: N more chars]` | response capped at 20k chars; ask for a smaller `max_depth` or specific ids |
@@ -168,3 +180,36 @@ frame: `Delete the frame "Hello"`.
 3. `hermes --tui`, paste the brief or `hermes -c` to continue.
 
 The daemon, the MCP server and the skill take care of themselves.
+
+## 10. What the live run showed
+
+2026-10-11, Qwen3.8 27B through Hermes Desktop, the agency example start to
+finish, about half a day. Figma got a structurally valid file: the `Brutal`
+collection, six text styles, Button/Tag/Nav/Divider/Icon atoms with variant
+sets, four organisms, seven desktop pages and a mobile home, every page at
+0 primary findings. The designer's verdict: not accepted, "hard to call it a
+wireframe". Every section was the literal minimum for its name; nothing in
+the composition came from the brief's style words.
+
+Where the time went, in order of cost:
+
+1. **Turn cost.** 15-20 s per model step, one tool call per step, plus a
+   75-90 s context compaction every one or two steps once the session
+   passed ~55k tokens.
+2. **Drift.** Rebuilding pages instead of editing, building on whatever
+   page was current, 96 px display type on a 390 px mobile frame, plain
+   text where instances existed. Each needed a correction message.
+3. **Setup.** The session ran on Hermes's self-written `figma-bridge` skill
+   because `skills.external_dirs` did not include the repo and the old
+   `requires_toolsets` line would have hidden `figma-mcp` anyway.
+4. **Operator mistakes.** Changing the current page or deleting nodes while
+   the agent works sends it to the wrong page; read by id only.
+
+What held: the bridge, the tools (no tool failures after `create_variables`
+and `bind_variables` landed), rollback on failed snippets, the critique as a
+hygiene check.
+
+Conclusion: a local 27B model executes a precise spec and cannot invent one.
+Give it [workflow 04](../04-build-from-reference.md) (a screenshot to
+reproduce), [02](../02-edit-and-propose.md) and [03](../03-atomize-for-handoff.md);
+give the brief-to-design step to a hosted model or do the first page by hand.

@@ -212,6 +212,41 @@ const comps = page.findAllWithCriteria({ types: ['COMPONENT', 'COMPONENT_SET'] }
 return comps.map(c => ({ id: c.id, name: c.name, key: c.key }));
 ```
 
+## 11b. Create a page and move nodes onto it
+
+```js
+let page = figma.root.children.find(p => p.name === 'Components / Button');
+if (!page) { page = figma.createPage(); page.name = 'Components / Button'; }   // figma.root.createPage does not exist
+const ids = ['12:34', '12:40'];
+for (const id of ids) {
+  const n = await figma.getNodeByIdAsync(id);
+  if (n) page.appendChild(n);           // appendChild moves across pages; keeps the id
+}
+await figma.setCurrentPageAsync(page);  // optional, at most once per snippet
+return { page: page.id, moved: ids };
+```
+
+## 11c. Text style: create and apply
+
+```js
+const font = { family: 'Inter', style: 'Bold' };
+await figma.loadFontAsync(font);                       // load before creating the style AND before applying it
+let style = (await figma.getLocalTextStylesAsync()).find(s => s.name === 'Heading/M');
+if (!style) {
+  style = figma.createTextStyle();
+  style.name = 'Heading/M';
+  style.fontName = font;
+  style.fontSize = 32;
+  style.lineHeight = { unit: 'PERCENT', value: 110 };    // or { unit: 'PIXELS', value: 36 }
+  style.letterSpacing = { unit: 'PERCENT', value: -1 };
+}
+const t = await figma.getNodeByIdAsync('12:34');
+await t.setTextStyleIdAsync(style.id);                 // `t.textStyleId = id` throws under dynamic-page
+return { style: style.id, applied: t.textStyleId === style.id, fontSize: t.fontSize };
+```
+
+If `applied` comes back `false`, the text's own font was not loaded: `await loadFontsFor(t)` and apply again.
+
 ## 12. Delete by name pattern, with a dry run
 
 ```js

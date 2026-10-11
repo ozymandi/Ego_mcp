@@ -18,7 +18,7 @@ copy .env.example .env            # paste a Figma personal access token (REST to
 2. Run the plugin (Plugins → Development → Gemma 4 MCP Bridge). Green dot = connected.
 3. Register `node <repo>/dist/server.js` in your client and install the skill
    from `skills/figma-mcp/` — per-client steps in [docs/pipelines/](docs/pipelines/README.md).
-4. What to ask for, step by step: [docs/workflows/](docs/workflows/README.md)
+4. What to ask for, step by step: [docs/workflows/](docs/workflows/README.md); how to phrase it for a local model: [docs/prompt-templates.md](docs/prompt-templates.md)
    (create from scratch with variants and critique, edit a region with a
    proposal first, atomize a finished design for hand-off).
 
@@ -242,13 +242,18 @@ npm run docs:tools
 
 #### Hermes Agent
 
-Add the server and the skill folder to `~/.hermes/config.yaml`. Name the server
-`figma` — the skill is gated on the `mcp-figma` toolset, and tool names become
-`mcp_figma_<tool>`.
+Add the server and the skill folder to Hermes's `config.yaml` (`~/.hermes/`
+for the CLI install, `%LOCALAPPDATA%\hermes\` for Hermes Desktop on Windows).
+The server name is yours to pick; tools become `mcp__<name>__<tool>`, so with
+`gemma_figma` the screenshot tool is `mcp__gemma_figma__get_screenshot`. The
+skill is not gated on the name. **`skills.external_dirs` must list the repo's
+`skills` folder**, otherwise Hermes writes its own Figma skill after the first
+session and works from that instead of `figma-mcp`; check with "Which skills
+do you have?".
 
 ```yaml
 mcp_servers:
-  figma:
+  gemma_figma:
     command: node
     args: ["E:/Projects/gemma 4 figma mcp/dist/server.js"]
     lazy: true
@@ -264,8 +269,11 @@ skills:
     - "E:/Projects/gemma 4 figma mcp/skills"
 ```
 
-Hermes puts every tool schema into the model's context, so pick a profile that
-matches the job. Local 27B-class models work best with `core`.
+Hermes searches tool schemas on demand and allows one MCP call per turn, so
+a profile is less about context size and more about keeping the choice small
+for a local model. Local 27B-class models work best with `core` for editing
+and with `design` for tokens, components and hand-off. What they are good for
+and what they are not, from the live run: [docs/pipelines/hermes-local.md](docs/pipelines/hermes-local.md#3-what-to-give-a-local-model).
 
 | Profile | `tools.include` |
 |---------|-----------------|

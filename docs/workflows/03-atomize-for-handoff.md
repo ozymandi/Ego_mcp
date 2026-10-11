@@ -107,6 +107,36 @@ agent:  critique_design {node_id: screen, rules: ["unnamed-layers", "hidden-laye
         critique_design {node_id: screen} → 0 primary, advisories reviewed
 ```
 
+### 4b. A flat frame into auto-layout
+
+A hand-drawn screen often has every element loose at the root: no
+sub-frames, positions only. Turning that on with one `set_auto_layout` on
+the root packs everything into one row and the original positions are
+gone. Do it bottom-up instead, and read `get_node_spec` of the root first
+so the agent has x/y/w/h and every text string before anything moves:
+
+1. **Icon clusters** (overlapping rectangles and ellipses that form one
+   glyph) go into frames with `layoutMode = 'NONE'`, sized to their
+   bounding box, or get replaced by `insert_icon` at the same spot.
+2. **Rows.** Children of one y-band, sorted by x **before** the layout is
+   switched on (Figma packs in child-array order, not by position). Gaps
+   become `itemSpacing` and padding; a push-to-end gap is `layoutGrow = 1`
+   on the trailing child; a button is the rectangle's fill and radius moved
+   onto the new frame with the label as its child.
+3. **Columns.** Rows of one x-band, sorted by y, into VERTICAL frames.
+4. **Root** HORIZONTAL (columns side by side). Before switching it on the
+   sum of the column widths must equal the root width; the agent should
+   return that sum.
+5. Short labels get `textAutoResize = 'WIDTH_AND_HEIGHT'` so they do not
+   wrap inside rows; paragraphs keep a fixed width.
+
+Cards whose children overlap in two dimensions (a title over an image) stay
+`NONE` with the children at their original relative offsets. Verify with a
+state probe (node count, frames with layout, a sample of positions) **and**
+a screenshot; each alone misses a class of damage. If a step goes wrong,
+the snippet's rollback returns the canvas to before that call; do not patch
+a half-converted frame, restart that level.
+
 ## 5. Spec and hand-off package
 
 ```
@@ -148,10 +178,11 @@ instance component + properties.
 
 - **Repeated-structure detection** is the snippet above, not a tool yet; if
   it proves useful, it becomes `find_repeated_patterns`.
-- **Moving nodes between pages** is `use_figma` (clone to target page,
-  remove the original); `move_node` is same-page only.
+- **Moving nodes between pages** is `use_figma` (`targetPage.appendChild(node)`
+  keeps the id; snippet 11b); `move_node` is same-page only.
 - **Text styles** have no structured tool yet (`use_figma`:
-  `figma.createTextStyle()`, `node.textStyleId = style.id`).
+  `figma.createTextStyle()`, `await node.setTextStyleIdAsync(style.id)`;
+  snippet 11c in the skill's `references/snippets.md`).
 
 ## Running it in Hermes
 

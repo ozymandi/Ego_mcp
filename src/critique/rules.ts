@@ -162,7 +162,8 @@ export const RULES: RuleDef[] = [
       if (sizes.length < 6) return [];
       const distinct = uniq(sizes).sort((a, b) => a - b);
       const ratio = distinct[distinct.length - 1]! / distinct[0]!;
-      if (distinct.length <= 2 || ratio < 1.5) {
+      // Two sizes are fine when they differ clearly (logo + labels); flag only a flat ladder.
+      if (ratio < 1.5) {
         return [f("flat-type-hierarchy", "primary", c.roots[0]!, `${sizes.length} texts use sizes ${distinct.join("/")} (max/min ${ratio.toFixed(2)})`, "give headings a clear step up (1.5x+): use_figma fontSize")];
       }
       return [];

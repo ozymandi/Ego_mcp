@@ -56,16 +56,16 @@ configure beyond the setup in [hermes-local.md](hermes-local.md).
 ```
 you:    Review the frame "Pricing" and fix everything the critique marks as primary.
 
-hermes: mcp_figma_find_nodes {name_pattern: "^Pricing$", type: "FRAME"}
-        mcp_figma_critique_design {node_id: "12:34", min_severity: "primary"}
+hermes: mcp__gemma_figma__find_nodes {name_pattern: "^Pricing$", type: "FRAME"}
+        mcp__gemma_figma__critique_design {node_id: "12:34", min_severity: "primary"}
           → 4 primary: low-contrast ×2, tiny-text, nested-cards
-        mcp_figma_set_fill {node_id: "12:41", color: "#374151"}
-        mcp_figma_set_fill {node_id: "12:44", color: "#374151"}
-        mcp_figma_use_figma  (fontSize 9 → 12 on 12:47)
-        mcp_figma_use_figma  (remove the inner card's fill and radius on 12:50)
-        mcp_figma_critique_design {node_id: "12:34", min_severity: "primary"}
+        mcp__gemma_figma__set_fill {node_id: "12:41", color: "#374151"}
+        mcp__gemma_figma__set_fill {node_id: "12:44", color: "#374151"}
+        mcp__gemma_figma__use_figma  (fontSize 9 → 12 on 12:47)
+        mcp__gemma_figma__use_figma  (remove the inner card's fill and radius on 12:50)
+        mcp__gemma_figma__critique_design {node_id: "12:34", min_severity: "primary"}
           → 0 primary
-        mcp_figma_get_screenshot {node_ids: ["12:34"]}
+        mcp__gemma_figma__get_screenshot {node_ids: ["12:34"]}
         "Fixed 4 primary findings: contrast on two labels, legal text to 12px,
          flattened the nested card. Screenshot attached."
 ```
@@ -77,12 +77,12 @@ you:    Build a signup screen at 100,100 (360x720): logo, heading, email and
         password fields, a primary button, a link to log in. Then run the
         critique and fix what it flags.
 
-hermes: mcp_figma_use_figma  (one snippet: createAutoLayout + fields + button)
-        mcp_figma_critique_design {node_id: "15:2"}
+hermes: mcp__gemma_figma__use_figma  (one snippet: createAutoLayout + fields + button)
+        mcp__gemma_figma__critique_design {node_id: "15:2"}
           → 1 primary (small-tap-target on the link), 2 advisory
-        mcp_figma_resize_node {node_id: "15:19", width: 120, height: 40}
-        mcp_figma_critique_design {node_id: "15:2", min_severity: "primary"} → 0
-        mcp_figma_get_screenshot {node_ids: ["15:2"]}
+        mcp__gemma_figma__resize_node {node_id: "15:19", width: 120, height: 40}
+        mcp__gemma_figma__critique_design {node_id: "15:2", min_severity: "primary"} → 0
+        mcp__gemma_figma__get_screenshot {node_ids: ["15:2"]}
 ```
 
 The skill tells the model to critique once per screen and stop after two
@@ -93,8 +93,8 @@ rounds; if it loops, the brief was unclear, not the tool.
 ```
 you:    Check the whole page for contrast and text overflow only.
 
-hermes: mcp_figma_get_current_page
-        mcp_figma_critique_design {node_id: "0:1", rules: ["low-contrast", "gray-on-color", "text-overflow", "text-occlusion"], max_findings: 100}
+hermes: mcp__gemma_figma__get_current_page
+        mcp__gemma_figma__critique_design {node_id: "0:1", rules: ["low-contrast", "gray-on-color", "text-overflow", "text-occlusion"], max_findings: 100}
 ```
 
 ### Example 4 — hand-off after the review
@@ -103,8 +103,8 @@ hermes: mcp_figma_get_current_page
 you:    The "Pricing" frame is final. Give me its spec and the variables it
         uses so I can rebuild it in Framer.
 
-hermes: mcp_figma_get_node_spec {node_id: "12:34"}
-        mcp_figma_get_variable_defs {node_id: "12:34"}
+hermes: mcp__gemma_figma__get_node_spec {node_id: "12:34"}
+        mcp__gemma_figma__get_variable_defs {node_id: "12:34"}
         → outline with sizes, auto-layout, hex colors with {variable} names, type
 ```
 

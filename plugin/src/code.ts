@@ -216,6 +216,21 @@ const DIAGNOSES: { re: RegExp; hint: string; safe_to_retry: boolean }[] = [
     safe_to_retry: true,
   },
   {
+    re: /is an instance or is inside of an instance|Cannot move node/i,
+    hint: "Instances do not accept new children anywhere in their subtree. Override existing children (characters, fills, resize) or build a plain frame instead of an instance; to add a child for every instance, add it to the main component.",
+    safe_to_retry: true,
+  },
+  {
+    re: /\.create(Frame|Text|Rectangle|Component|Page|Ellipse|Line) is not a function|createFrame is not a function|createText is not a function/i,
+    hint: "Creation methods live on `figma`, not on nodes: `const f = figma.createFrame(); parent.appendChild(f)`. Same for createText, createRectangle, createComponent and createPage.",
+    safe_to_retry: true,
+  },
+  {
+    re: /component inside a component|Reparenting would create a component/i,
+    hint: "A COMPONENT cannot be nested in another component. Place an instance instead: `const inst = comp.createInstance(); parent.appendChild(inst)` (or create_instance with component_id), then edit the instance's text.",
+    safe_to_retry: true,
+  },
+  {
     re: /not a function/i,
     hint: "That method does not exist. Common correct names: figma.createComponentFromNode(node), component.createInstance(), figma.createFrame()/createText()/createRectangle(), figma.group(nodes, parent), figma.combineAsVariants(components, parent), node.findAllWithCriteria({types:['TEXT']}), instance.setProperties({...}), await figma.importComponentByKeyAsync(key). Variables: figma.variables.createVariableCollection(name), figma.variables.createVariable(name, collection, 'COLOR'|'FLOAT'|'STRING'|'BOOLEAN'), variable.setValueForMode(modeId, value), figma.variables.setBoundVariableForPaint(paint, 'color', variable), node.setBoundVariable(field, variable). Text styles: figma.createTextStyle(), await node.setTextStyleIdAsync(id). Or use the structured tools (create_variables, bind_variables).",
     safe_to_retry: true,

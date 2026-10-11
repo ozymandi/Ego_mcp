@@ -172,6 +172,74 @@ figma.currentPage.appendChild(inst);
 return { created: [inst.id] };
 ```
 
+## Creation is on `figma`, never on a node
+
+```js
+// WRONG — these methods do not exist
+const f = parent.createFrame();
+const t = frame.createText();
+const c = page.createComponent();
+
+// RIGHT — create at top level, then append
+const f = figma.createFrame();
+parent.appendChild(f);
+```
+
+## Instances take overrides, not new children
+
+```js
+// WRONG — throws "New parent is an instance or is inside of an instance"
+inst.appendChild(figma.createText());
+innerFrameOfInstance.appendChild(icon);
+
+// RIGHT — override what the component already has
+const t = inst.findOne(n => n.type === 'TEXT' && n.name === 'Label');
+await figma.loadFontAsync(t.fontName);
+t.characters = 'New label';
+
+// RIGHT — need a different structure? build a plain frame instead of an instance,
+// or add the child to the main component so every instance gets it
+```
+
+Related: a COMPONENT cannot be placed inside another component; `clone()`
+of a component returns a component. Use `comp.createInstance()` inside a
+component body.
+
+## Replacing a child inside auto-layout
+
+```js
+// WRONG — remove then append: the new node lands at the END of the row
+old.remove();
+parent.appendChild(replacement);
+
+// RIGHT — insert at the old index first, then remove
+const i = parent.children.indexOf(old);
+parent.insertChild(i, replacement);
+replacement.layoutSizingHorizontal = old.layoutSizingHorizontal;
+old.remove();
+```
+
+Collect every node to replace into an array before the loop; removing
+while iterating `children` skips siblings.
+
+## Do not enumerate `figma.variables`
+
+```js
+// WRONG — the teamLibrary getter throws a permission error and kills the snippet
+return Object.keys(figma.variables);
+return JSON.stringify(figma.variables);
+
+// RIGHT — call the methods you need by name
+const vars = await figma.variables.getLocalVariablesAsync('COLOR');
+```
+
+## Screenshots of fill-less frames
+
+A frame with no fill exports with a transparent background; black text
+and strokes on it look invisible in the chat viewer. Give the root a white
+fill before `get_screenshot`, or screenshot the parent that has one. Do not
+pass a page id to `get_screenshot`; screenshot its top-level frames.
+
 ## Helpers: functions, not methods
 
 This server provides `query`, `set`, `createAutoLayout`, `loadFontsFor`, `hex`, `solid` as **plain functions** in the snippet scope. Figma's own MCP exposes similar names as node methods; those forms do not exist here.

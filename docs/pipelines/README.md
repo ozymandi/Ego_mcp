@@ -14,13 +14,13 @@ task are optional extras.
 
 | Pipeline | Models | Tool list in context | Skill | Page |
 |----------|--------|----------------------|-------|------|
-| [Hermes Agent + LM Studio](hermes-local.md) | local: Qwen3.8 27B, Gemma 4 31B | all of the chosen profile, every turn | `skills.external_dirs` | recommended for local models |
-| [Claude Code](claude-code.md) | Claude | deferred, loaded on demand | `.claude/skills/` | recommended for hosted models |
+| [Hermes Agent + LM Studio](hermes-local.md) | local: Qwen3.8 27B, Gemma 4 31B | index in context, schemas on demand, one call per turn | `skills.external_dirs` | local models: build from a reference, edit, atomize; not creation from a brief |
+| [Claude Code](claude-code.md) | Claude | deferred, loaded on demand | `.claude/skills/` | hosted models; creation from a brief |
 | [Codex](codex.md) | OpenAI | all tools | `AGENTS.md` pointer | |
 | [LM Studio chat](lmstudio-chat.md) | local | all 88 tools (~12k tokens) | none | quick manual checks |
 | [Your own agent loop](custom-agent.md) | any OpenAI-compatible | whatever you pass | you decide | automation, evals |
 
-End-to-end scenarios (brief → variants → critique, edit with a proposal, atomize for hand-off): [../workflows/](../workflows/README.md).
+End-to-end scenarios (brief → variants → critique, edit with a proposal, atomize for hand-off, build from a reference): [../workflows/](../workflows/README.md). Which of them a local model can carry: [hermes-local.md §3](hermes-local.md#3-what-to-give-a-local-model).
 
 Cross-cutting: [Design review](design-review.md) — the prototype → `critique_design` → fix → hand-off loop, with examples for Hermes and LM Studio chat and how Impeccable fits at the code stage.
 

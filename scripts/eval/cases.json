@@ -282,19 +282,24 @@
   {
     "id": "image",
     "prompt": "Place the image hero.png from the 'assets' workspace on the canvas at 0,0.",
-    "tool": "import_image_to_figma",
-    "args": {
-      "workspace": "assets",
-      "path": {
-        "$re": "hero\\.png$"
-      },
-      "x": 0,
-      "y": 0
-    },
+    "tool": [
+      "import_image_to_figma",
+      "list_workspaces"
+    ],
     "profiles": [
       "design",
       "full"
-    ]
+    ],
+    "args_for": {
+      "import_image_to_figma": {
+        "workspace": "assets",
+        "path": {
+          "$re": "hero\\.png$"
+        },
+        "x": 0,
+        "y": 0
+      }
+    }
   },
   {
     "id": "ds-search",

@@ -49,7 +49,9 @@ Reach feature parity with the official Figma Dev Mode MCP that Claude Code uses,
 
 **2026-10-11, live eval done:** `scripts/eval/run-live.mjs` + `live-tasks.mjs` (6 tasks, agent loop through the real plugin, deterministic canvas checks, snapshot cleanup), `npm run eval:live`. Qwen: design/design+skill/full+skill 6/6, core 5/6 (component via use_figma; passed on re-run). Gemma: 6/6 on all four profiles, ~half the tokens. Both evals now use max_tokens 8000 (thinking models). Plugin hints for "is not defined" / "not a function" rewritten (plugin rebuilt, stamp 13:30, needs a restart to take effect). Results in docs/eval-2026-10-11.md.
 
-**Next step (designer's call):** (a) `--runs 3` variance on the first-call eval; (b) `find_nodes` description tweak so Gemma passes `type` instead of `name_pattern: ".*"`; (c) a longer live task (screen from a design system); (d) remaining P3 items only if asked. Hermes: Qwen -> `design`, Gemma -> `design` or `full + skill`.
+**2026-10-11, variance done:** 3 runs per case at t=0 and t=0.7 (docs/eval-2026-10-11.md): Qwen 100% on core/core+skill, 97% on full+skill at 0.7; Gemma 96%/91% core, 100% full+skill; results identical across runs at t=0 and nearly so at 0.7. `find_nodes`: description reworded, `type` is now an enum, `.*` patterns ignored server-side (Gemma kept sending them). Eval case "image" accepts `list_workspaces` as a first step.
+
+**Next step (designer's call):** a longer live task (screen from a design system), smaller models (Gemma 4 26B-A4B / 12B), remaining P3 items only if asked. Hermes: Qwen -> `design`, Gemma -> `design` or `full + skill`.
 
 **Open questions:** which local models to target first (Gemma 4 26B-A4B / 31B, Qwen3.8 27B). Models have vision — screenshots stay inline (decided 2026-10-11). Client priority (2026-10-11): 1) **Hermes Agent** over LM Studio (local models), 2) Claude Code + Codex (big LLMs), 3) LM Studio chat (uncertain). Hermes — it accumulates skills, so the repo should ship a seed SKILL.md (proposal P2.0) and README `tools.include` profiles instead of in-server profiles.
 

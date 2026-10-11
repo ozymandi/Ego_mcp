@@ -121,7 +121,7 @@ function score(c, call) {
   } catch (e) {
     return { toolOk, argsOk: false, reason: `arguments not JSON: ${e.message}` };
   }
-  const expected = c.args ?? {};
+  const expected = (c.args_for && c.args_for[call.name]) ?? c.args ?? {};
   const bad = Object.entries(expected).filter(([k, v]) => !matchValue(v, args[k])).map(([k]) => k);
   return { toolOk, argsOk: bad.length === 0, reason: bad.length ? `args off: ${bad.join(", ")} -> ${JSON.stringify(args)}` : "" };
 }

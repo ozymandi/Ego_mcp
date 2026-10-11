@@ -482,23 +482,27 @@ export function registerCanvasTools(
     {
       title: "Find nodes on the current page",
       description:
-      "Search the current page by name regex and/or type. Returns id, name, type.",
+      "Find nodes on the current page. For 'all text layers' / 'all frames' pass only `type`; pass `name_pattern` only when a name is known. Returns id, name, type.",
       inputSchema: {
         name_pattern: z
           .string()
           .optional()
-          .describe("Case-insensitive regex on node name."),
+          .describe("Case-insensitive regex on the name. Omit to match any name (never pass '.*')."),
         type: z
-          .string()
+          .enum([
+            "TEXT", "FRAME", "RECTANGLE", "ELLIPSE", "LINE", "VECTOR", "INSTANCE", "COMPONENT",
+            "COMPONENT_SET", "GROUP", "SECTION", "BOOLEAN_OPERATION", "POLYGON", "STAR", "SLICE",
+          ])
           .optional()
-          .describe("FRAME | TEXT | RECTANGLE | INSTANCE | ..."),
+          .describe("Node type filter."),
         limit: z.number().int().positive().max(500).optional().default(50),
       },
     },
     async ({ name_pattern, type, limit }) => {
       try {
         const code = `
-          const pattern = ${J(name_pattern ?? null)};
+          // ".*" / "" match everything; treat them as "no pattern" so the type filter does the work.
+          const pattern = ${J(name_pattern && !/^(\.\*|\^?\.\*\$?|)$/.test(name_pattern.trim()) ? name_pattern : null)};
           const type = ${J(type ?? null)};
           const limit = ${limit};
           const re = pattern ? new RegExp(pattern, 'i') : null;

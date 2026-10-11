@@ -189,9 +189,9 @@ Selects the given node ids on the current page.
   - `node_ids: string[]`
 
 ### `find_nodes`
-Search the current page by name regex and/or type. Returns id, name, type.
-  - `name_pattern?: string` — Case-insensitive regex on node name.
-  - `type?: string` — FRAME | TEXT | RECTANGLE | INSTANCE | ...
+Find nodes on the current page. For 'all text layers' / 'all frames' pass only `type`; pass `name_pattern` only when a name is known. Returns id, name, type.
+  - `name_pattern?: string` — Case-insensitive regex on the name. Omit to match any name (never pass '.*').
+  - `type?: 'TEXT' | 'FRAME' | 'RECTANGLE' | 'ELLIPSE' | 'LINE' | 'VECTOR' | 'INSTANCE' | 'COMPONENT' | 'COMPONENT_SET' | 'GROUP' | 'SECTION' | 'BOOLEAN_OPERATION' | 'POLYGON' | 'STAR' | 'SLICE'` — Node type filter.
   - `limit?: integer = 50`
 
 ### `group_nodes`
